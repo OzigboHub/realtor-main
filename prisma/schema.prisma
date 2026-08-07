@@ -1,0 +1,387 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String               @id @default(uuid())
+  name                   String
+  email                  String               @unique
+  password               String
+  role                   Role                 @default(USER)
+  isBlocked              Boolean              @default(false)
+  status                 Status               @default(APPROVED)
+  profileImage           String?
+  phone                  String?
+  bio                    String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  registrationPropertyId String?
+  passwordResetToken     String?
+  passwordResetExpiry    DateTime?
+  googleId               String?              @unique
+  avatar                 String?
+  appointments           Appointment[]        @relation("UserAppointments")
+  managedBuildings       Building[]           @relation("CaretakerBuildings")
+  ownedBuildings         Building[]           @relation("LandlordBuildings")
+  favorites              Favorite[]
+  leases                 Lease[]              @relation("TenantLeases")
+  maintenanceRequests    MaintenanceRequest[] @relation("TenantMaintenanceRequests")
+  receivedMessages       Message[]            @relation("ReceivedMessages")
+  sentMessages           Message[]            @relation("SentMessages")
+  notifications          Notification[]
+  properties             Property[]           @relation("UserProperties")
+  reviews                Review[]
+  registrationProperty   Property?            @relation("RegistrationProperty", fields: [registrationPropertyId], references: [id])
+
+  @@map("users")
+}
+
+
+model Property {
+  id                String           @id @default(uuid())
+  title             String
+  description       String
+  price             Float
+  type              String
+  location          String
+  imageUrls         String[]
+  documents         String[]
+  bedrooms          Int?
+  bathrooms         Int?
+  available         Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  agentId           String
+  amenities         String[]         @default([])
+  listingType       String           @default("RENT")
+  status            String           @default("PUBLISHED")
+  apartmentType     ApartmentType?
+  category          PropertyCategory @default(APARTMENT)
+  commercialType    CommercialType?
+  features          String[]
+  highlights        String?
+  houseType         HouseType?
+  landType          LandType?
+  purpose           ListingPurpose   @default(RENT)
+  toilets           Int?
+  country           String?
+  latitude          Float?
+  longitude         Float?
+  appointments      Appointment[]
+  favorites         Favorite[]
+  agent             User             @relation("UserProperties", fields: [agentId], references: [id])
+  reviews           Review[]
+  registrationUsers User[]           @relation("RegistrationProperty")
+
+  @@map("properties")
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  userId     String
+  propertyId String
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, propertyId])
+  @@map("favorites")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  rating     Int
+  comment    String?
+  userId     String
+  propertyId String
+  createdAt  DateTime @default(now())
+  property   Property @relation(fields: [propertyId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@map("reviews")
+}
+
+model Appointment {
+  id         String            @id @default(uuid())
+  propertyId String
+  userId     String
+  date       DateTime
+  message    String?
+  status     AppointmentStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  property   Property          @relation(fields: [propertyId], references: [id])
+  user       User              @relation("UserAppointments", fields: [userId], references: [id])
+
+  @@map("appointments")
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  senderId   String
+  receiverId String
+  content    String
+  createdAt  DateTime @default(now())
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model Building {
+  id          String                @id @default(uuid())
+  name        String
+  address     String
+  description String?
+  landlordId  String
+  caretakerId String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  invitations BuildingInvitation[]
+  caretaker   User?                 @relation("CaretakerBuildings", fields: [caretakerId], references: [id])
+  landlord    User                  @relation("LandlordBuildings", fields: [landlordId], references: [id])
+  agreements  ManagementAgreement[]
+  units       Unit[]
+
+  @@map("buildings")
+}
+
+model BuildingInvitation {
+  id             String           @id @default(uuid())
+  buildingId     String
+  email          String?
+  whatsappNumber String?
+  token          String           @unique
+  status         InvitationStatus @default(PENDING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  building       Building         @relation(fields: [buildingId], references: [id])
+
+  @@map("building_invitations")
+}
+
+model ManagementAgreement {
+  id            String                    @id @default(uuid())
+  buildingId    String
+  scope         ManagementScope
+  startDate     DateTime
+  endDate       DateTime?
+  managementFee Float
+  feeType       String                    @default("PERCENTAGE")
+  status        ManagementAgreementStatus @default(ACTIVE)
+  notes         String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+  building      Building                  @relation(fields: [buildingId], references: [id])
+
+  @@map("management_agreements")
+}
+
+model Unit {
+  id                  String               @id @default(uuid())
+  buildingId          String
+  unitNumber          String
+  bedrooms            Int?
+  bathrooms           Int?
+  isOccupied          Boolean              @default(false)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  leases              Lease[]
+  maintenanceRequests MaintenanceRequest[]
+  building            Building             @relation(fields: [buildingId], references: [id])
+
+  @@map("units")
+}
+
+model Lease {
+  id           String        @id @default(uuid())
+  unitId       String
+  tenantId     String
+  startDate    DateTime
+  endDate      DateTime?
+  rentAmount   Float
+  status       LeaseStatus   @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  tenant       User          @relation("TenantLeases", fields: [tenantId], references: [id])
+  unit         Unit          @relation(fields: [unitId], references: [id])
+  rentPayments RentPayment[]
+
+  @@map("leases")
+}
+
+model RentPayment {
+  id        String     @id @default(uuid())
+  leaseId   String
+  amount    Float
+  dueDate   DateTime
+  paidDate  DateTime?
+  status    RentStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  lease     Lease      @relation(fields: [leaseId], references: [id])
+
+  @@map("rent_payments")
+}
+
+model MaintenanceRequest {
+  id          String            @id @default(uuid())
+  unitId      String
+  tenantId    String
+  description String
+  status      MaintenanceStatus @default(OPEN)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  tenant      User              @relation("TenantMaintenanceRequests", fields: [tenantId], references: [id])
+  unit        Unit              @relation(fields: [unitId], references: [id])
+
+  @@map("maintenance_requests")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  event     String
+  message   String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  module      String
+  entityType  String?
+  entityId    String?
+  performedBy String?
+  userRole    String?
+  ipAddress   String?
+  userAgent   String?
+  method      String?
+  url         String?
+  prevValue   Json?
+  newValue    Json?
+  status      String   @default("SUCCESS")
+  failReason  String?
+  createdAt   DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+enum Role {
+  USER
+  AGENT
+  ADMIN
+  SUPER_ADMIN
+  LANDLORD
+  CARETAKER
+  TENANT
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+  COMPLETED
+}
+
+enum RentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  ESCALATED
+}
+
+enum LeaseStatus {
+  ACTIVE
+  TERMINATED
+  EXPIRED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum PropertyCategory {
+  HOUSE
+  APARTMENT
+  LAND
+  COMMERCIAL
+}
+
+enum ListingPurpose {
+  SALE
+  RENT
+}
+
+enum HouseType {
+  DETACHED
+  SEMI_DETACHED
+  TERRACED
+  DUPLEX
+  MAISONETTE
+  BUNGALOW
+  COTTAGE
+}
+
+enum ApartmentType {
+  STUDIO
+  SELF_CONTAINED
+  MINI_FLAT
+  ONE_BEDROOM
+  TWO_BEDROOM
+  THREE_BEDROOM
+  PENTHOUSE
+}
+
+enum CommercialType {
+  OFFICE
+  SHOP
+  WAREHOUSE
+  PLAZA
+  HOTEL
+  FACTORY
+  EVENT_CENTER
+  FILLING_STATION
+}
+
+enum LandType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  AGRICULTURAL
+  MIXED_USE
+}
+
+enum ManagementAgreementStatus {
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum ManagementScope {
+  RENT_COLLECTION
+  RENT_AND_MAINTENANCE
+  FULL_MANAGEMENT
+}
