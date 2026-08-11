@@ -16,6 +16,7 @@ import { GoogleProfile } from './google.strategy';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService } from '../mail/mail.service';
 import { AuditService } from '../audit/audit.service';
+import { RedisService } from '../common/redis/redis.service';
 
 const PENDING_ROLES: Role[] = [
   Role.AGENT,
@@ -37,6 +38,7 @@ export class AuthService {
     private notifications: NotificationsService,
     private mail: MailService,
     private audit: AuditService,
+    private redis: RedisService,
   ) {}
 
   // ==============================
@@ -254,6 +256,11 @@ export class AuthService {
   // ==============================
   async blockUser(id: string, block: boolean, callerId?: string, callerRole?: string) {
     const updated = await this.prisma.user.update({ where: { id }, data: { isBlocked: block } });
+    if (block) {
+      await this.redis.sadd('bl:users', id);
+    } else {
+      await this.redis.srem('bl:users', id);
+    }
     await this.audit.log({ action: block ? 'BLOCK_USER' : 'UNBLOCK_USER', module: 'AUTH', entityType: 'User', entityId: id, performedBy: callerId, userRole: callerRole, newValue: { isBlocked: block }, status: 'SUCCESS' });
     return updated;
   }

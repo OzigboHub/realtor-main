@@ -1,17 +1,24 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../common/redis/redis.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
 import { ListingPurpose } from '@prisma/client';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class PropertiesService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(PropertiesService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private redis: RedisService,
+  ) {}
 
   private sanitizeSubtypes(data: any, existingCategory?: string) {
     const category = data.category || existingCategory;
     if (!category) return data;
-    
+
     const result = { ...data };
     if (category !== 'HOUSE') result.houseType = null;
     if (category !== 'APARTMENT') result.apartmentType = null;
@@ -20,14 +27,25 @@ export class PropertiesService {
     return result;
   }
 
+  private async invalidateCache() {
+    try {
+      await this.redis.delByPattern('prop:search:*');
+      this.logger.log('Property search cache invalidated.');
+    } catch (err) {
+      this.logger.warn(`Cache invalidation failed: ${err}`);
+    }
+  }
+
   async create(createPropertyDto: CreatePropertyDto, agentId: string) {
     const sanitized = this.sanitizeSubtypes(createPropertyDto);
-    return this.prisma.property.create({
+    const created = await this.prisma.property.create({
       data: {
         ...sanitized,
         agentId,
       },
     });
+    await this.invalidateCache();
+    return created;
   }
 
   async findAll(filters: {
@@ -45,7 +63,6 @@ export class PropertiesService {
     apartmentType?: any;
     commercialType?: any;
     landType?: any;
-    // FR-10: Global map search
     country?: string;
     city?: string;
     radiusKm?: number;
@@ -54,6 +71,19 @@ export class PropertiesService {
     page?: number;
     limit?: number;
   }) {
+    const filterHash = crypto
+      .createHash('md5')
+      .update(JSON.stringify(filters))
+      .digest('hex');
+    const cacheKey = `prop:search:${filterHash}`;
+
+    // Check Redis cache
+    const cached = await this.redis.get(cacheKey);
+    if (cached) {
+      this.logger.log(`Cache HIT for property search query: ${cacheKey}`);
+      return JSON.parse(cached);
+    }
+
     const {
       type,
       listingType,
@@ -77,7 +107,7 @@ export class PropertiesService {
       page = 1,
       limit = 20,
     } = filters;
-    
+
     const where: any = {
       status: 'PUBLISHED',
       available: true,
@@ -98,10 +128,9 @@ export class PropertiesService {
     if (apartmentType) where.apartmentType = apartmentType;
     if (commercialType) where.commercialType = commercialType;
     if (landType) where.landType = landType;
-    // FR-10: country & city filters
     if (country) where.country = { contains: country, mode: 'insensitive' };
     if (city) where.location = { contains: city, mode: 'insensitive' };
-    
+
     if (minPrice || maxPrice) {
       where.price = {};
       if (minPrice) where.price.gte = Number(minPrice);
@@ -163,9 +192,8 @@ export class PropertiesService {
       },
     }));
 
-    // FR-10.3: in-memory Haversine radius filter (Phase 2: replace with PostGIS)
     if (radiusKm && centerLat !== undefined && centerLng !== undefined) {
-      const R = 6371; // Earth radius km
+      const R = 6371;
       const lat1 = Number(centerLat);
       const lng1 = Number(centerLng);
       const km = Number(radiusKm);
@@ -183,7 +211,11 @@ export class PropertiesService {
       });
     }
 
-    return { data: mappedData, total, page: Number(page), limit: Number(limit) };
+    const response = { data: mappedData, total, page: Number(page), limit: Number(limit) };
+
+    // Save to Redis cache (300 seconds TTL)
+    await this.redis.set(cacheKey, JSON.stringify(response), 300);
+    return response;
   }
 
   async findOne(id: string) {
@@ -201,8 +233,7 @@ export class PropertiesService {
       },
     });
     if (!property) throw new NotFoundException('Property not found');
-    
-    // Check if property is published and active, and agent is approved
+
     if (
       property.status !== 'PUBLISHED' ||
       !property.available ||
@@ -271,27 +302,37 @@ export class PropertiesService {
 
   async update(id: string, updatePropertyDto: UpdatePropertyDto, userId: string, role: string) {
     const property = await this.findOne(id);
-    
-    // Only owner, landlord, or admin can update
-    if (property.agentId !== userId && role !== 'LANDLORD' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+
+    if (
+      property.agentId !== userId &&
+      role !== 'LANDLORD' &&
+      role !== 'ADMIN' &&
+      role !== 'SUPER_ADMIN'
+    ) {
       throw new ForbiddenException('You are not allowed to update this property');
     }
 
     const sanitized = this.sanitizeSubtypes(updatePropertyDto, property.category);
-    return this.prisma.property.update({
+    const updated = await this.prisma.property.update({
       where: { id },
       data: sanitized,
     });
+    await this.invalidateCache();
+    return updated;
   }
 
   async remove(id: string, userId: string, role: string) {
     const property = await this.findOne(id);
-    
-    if (property.agentId !== userId && role !== 'LANDLORD' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+
+    if (
+      property.agentId !== userId &&
+      role !== 'LANDLORD' &&
+      role !== 'ADMIN' &&
+      role !== 'SUPER_ADMIN'
+    ) {
       throw new ForbiddenException('You are not allowed to delete this property');
     }
 
-    // Clean up related records to prevent FK constraint errors
     await this.prisma.favorite.deleteMany({ where: { propertyId: id } });
     await this.prisma.appointment.deleteMany({ where: { propertyId: id } });
     await this.prisma.review.deleteMany({ where: { propertyId: id } });
@@ -301,12 +342,9 @@ export class PropertiesService {
     });
 
     await this.prisma.property.delete({ where: { id } });
+    await this.invalidateCache();
     return { success: true };
   }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // FR-11: Guided Property Management — Listing Checklist
-  // ─────────────────────────────────────────────────────────────────────────
 
   async getListingChecklist(id: string, userId: string, role: string) {
     const property = await this.prisma.property.findUnique({ where: { id } });

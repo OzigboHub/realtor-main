@@ -20,8 +20,10 @@ import { PaymentsModule } from './payments/payments.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { UploadModule } from './upload/upload.module';
 
-// Platform Modules
+// Platform & Infrastructure Modules
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './common/redis/redis.module';
+import { QueuesModule } from './queues/queues.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MailModule } from './mail/mail.module';
 import { WhatsappModule } from './whatsapp/whatsapp.module';
@@ -37,8 +39,10 @@ import { AgreementsModule } from './agreements/agreements.module';
     // Rate limiting: 100 requests per 60 seconds per IP
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
 
-    // Database
+    // Database & Caching Infrastructure
     PrismaModule,
+    RedisModule,
+    QueuesModule,
 
     // Platform (global services)
     MailModule,

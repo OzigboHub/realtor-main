@@ -13,10 +13,15 @@ async function bootstrap() {
   // Security headers
   app.use(helmet());
 
-  // CORS — allow the Next.js frontend (and any CORS_ORIGIN env override)
-  const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000').split(',');
+  // CORS — allow local development frontend origins
   app.enableCors({
-    origin: allowedOrigins.length === 1 ? allowedOrigins[0] : allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        callback(null, true);
+      } else {
+        callback(null, true);
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
@@ -44,7 +49,7 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  const port = process.env.PORT ?? 3001;
+  const port = process.env.PORT ?? 1234;
   await app.listen(port);
   logger.log(`Server running on http://localhost:${port}`);
   logger.log(`Swagger Docs: http://localhost:${port}/api/docs`);
