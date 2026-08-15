@@ -1,4 +1,4 @@
-﻿import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, IsPositive, IsIn } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, IsPositive, IsIn } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ManagementScope } from '@prisma/client';
 
@@ -58,4 +58,23 @@ export class CreateAgreementDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @ApiProperty({ description: 'The assigned Caretaker ID', example: 'user-uuid' })
+  @IsString()
+  caretakerId: string;
+
+  @ApiProperty({ description: 'Duration of the agreement in months', example: 12 })
+  @IsNumber()
+  @IsPositive()
+  durationMonths: number;
+
+  @ApiProperty({ description: 'SLA target days for rent collection', example: 3 })
+  @IsNumber()
+  @IsPositive()
+  slaTargetDaysRent: number;
+
+  @ApiProperty({ description: 'SLA target days for maintenance resolution', example: 2 })
+  @IsNumber()
+  @IsPositive()
+  slaTargetDaysMaintenance: number;
 }

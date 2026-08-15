@@ -8,75 +8,91 @@ datasource db {
 }
 
 model User {
-  id                     String               @id @default(uuid())
+  id                     String                @id @default(uuid())
   name                   String
-  email                  String               @unique
+  email                  String                @unique
   password               String
-  role                   Role                 @default(USER)
-  isBlocked              Boolean              @default(false)
-  status                 Status               @default(APPROVED)
+  role                   Role                  @default(USER)
+  isBlocked              Boolean               @default(false)
+  status                 Status                @default(APPROVED)
   profileImage           String?
   phone                  String?
   bio                    String?
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
   registrationPropertyId String?
   passwordResetToken     String?
   passwordResetExpiry    DateTime?
-  googleId               String?              @unique
+  googleId               String?               @unique
   avatar                 String?
-  appointments           Appointment[]        @relation("UserAppointments")
-  managedBuildings       Building[]           @relation("CaretakerBuildings")
-  ownedBuildings         Building[]           @relation("LandlordBuildings")
+  appointments           Appointment[]         @relation("UserAppointments")
+  managedBuildings       Building[]            @relation("CaretakerBuildings")
+  caretakerAgreements    ManagementAgreement[] @relation("CaretakerAgreements")
+  ownedBuildings         Building[]            @relation("LandlordBuildings")
   favorites              Favorite[]
-  leases                 Lease[]              @relation("TenantLeases")
-  maintenanceRequests    MaintenanceRequest[] @relation("TenantMaintenanceRequests")
-  receivedMessages       Message[]            @relation("ReceivedMessages")
-  sentMessages           Message[]            @relation("SentMessages")
+  leases                 Lease[]               @relation("TenantLeases")
+  maintenanceRequests    MaintenanceRequest[]  @relation("TenantMaintenanceRequests")
+  receivedMessages       Message[]             @relation("ReceivedMessages")
+  sentMessages           Message[]             @relation("SentMessages")
   notifications          Notification[]
-  properties             Property[]           @relation("UserProperties")
+  properties             Property[]            @relation("UserProperties")
   reviews                Review[]
-  registrationProperty   Property?            @relation("RegistrationProperty", fields: [registrationPropertyId], references: [id])
+  registrationProperty   Property?             @relation("RegistrationProperty", fields: [registrationPropertyId], references: [id])
+  aiSubscription         UserAiSubscription?
+  aiLogs                 AiUsageLog[]
+  tenantScreenings       TenantScreening[]     @relation("ApplicantScreenings")
+  initiatedDisputes      Dispute[]             @relation("DisputeInitiator")
+  respondentDisputes     Dispute[]             @relation("DisputeRespondent")
+  assignedDisputes       Dispute[]             @relation("DisputeSupportAgent")
+  sentSupportInvitations SupportInvitation[]   @relation("InvitedByAdmin")
 
   @@map("users")
 }
 
-
 model Property {
-  id                String           @id @default(uuid())
-  title             String
-  description       String
-  price             Float
-  type              String
-  location          String
-  imageUrls         String[]
-  documents         String[]
-  bedrooms          Int?
-  bathrooms         Int?
-  available         Boolean          @default(true)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  agentId           String
-  amenities         String[]         @default([])
-  listingType       String           @default("RENT")
-  status            String           @default("PUBLISHED")
-  apartmentType     ApartmentType?
-  category          PropertyCategory @default(APARTMENT)
-  commercialType    CommercialType?
-  features          String[]
-  highlights        String?
-  houseType         HouseType?
-  landType          LandType?
-  purpose           ListingPurpose   @default(RENT)
-  toilets           Int?
-  country           String?
-  latitude          Float?
-  longitude         Float?
-  appointments      Appointment[]
-  favorites         Favorite[]
-  agent             User             @relation("UserProperties", fields: [agentId], references: [id])
-  reviews           Review[]
-  registrationUsers User[]           @relation("RegistrationProperty")
+  id                  String            @id @default(uuid())
+  title               String
+  description         String
+  price               Float
+  rentFrequency       RentFrequency     @default(MONTHLY)
+  type                String
+  location            String
+  imageUrls           String[]
+  documents           String[]
+  bedrooms            Int?
+  bathrooms           Int?
+  available           Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  agentId             String
+  amenities           String[]          @default([])
+  listingType         String            @default("RENT")
+  status              String            @default("PUBLISHED")
+  apartmentType       ApartmentType?
+  category            PropertyCategory  @default(APARTMENT)
+  commercialType      CommercialType?
+  features            String[]
+  highlights          String?
+  houseType           HouseType?
+  landType            LandType?
+  purpose             ListingPurpose    @default(RENT)
+  toilets             Int?
+  country             String?
+  latitude            Float?
+  longitude           Float?
+  electricityScore    Float?            @default(4.5)
+  safetyScore         Float?            @default(4.8)
+  floodRiskScore      Float?            @default(1.2)
+  schoolScore         Float?            @default(4.2)
+  internetScore       Float?            @default(4.7)
+  appointments        Appointment[]
+  favorites           Favorite[]
+  agent               User              @relation("UserProperties", fields: [agentId], references: [id])
+  reviews             Review[]
+  registrationUsers   User[]            @relation("RegistrationProperty")
+  viewCount           Int               @default(0)
+  tenantScreenings    TenantScreening[] @relation("PropertyScreenings")
+  disputes            Dispute[]
 
   @@map("properties")
 }
@@ -165,18 +181,26 @@ model BuildingInvitation {
 }
 
 model ManagementAgreement {
-  id            String                    @id @default(uuid())
-  buildingId    String
-  scope         ManagementScope
-  startDate     DateTime
-  endDate       DateTime?
-  managementFee Float
-  feeType       String                    @default("PERCENTAGE")
-  status        ManagementAgreementStatus @default(ACTIVE)
-  notes         String?
-  createdAt     DateTime                  @default(now())
-  updatedAt     DateTime                  @updatedAt
-  building      Building                  @relation(fields: [buildingId], references: [id])
+  id                       String                    @id @default(uuid())
+  buildingId               String
+  caretakerId              String
+  scope                    ManagementScope
+  durationMonths           Int                       @default(12)
+  startDate                DateTime
+  endDate                  DateTime?
+  managementFee            Float
+  feeType                  String                    @default("PERCENTAGE")
+  status                   ManagementAgreementStatus @default(PENDING)
+  slaTargetDaysRent        Int                       @default(3)
+  slaTargetDaysMaintenance Int                       @default(2)
+  notes                    String?
+  caretakerSignature       String?
+  landlordSignature        String?
+  signedAt                 DateTime?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  building                 Building                  @relation(fields: [buildingId], references: [id])
+  caretaker                User                      @relation("CaretakerAgreements", fields: [caretakerId], references: [id])
 
   @@map("management_agreements")
 }
@@ -198,18 +222,23 @@ model Unit {
 }
 
 model Lease {
-  id           String        @id @default(uuid())
-  unitId       String
-  tenantId     String
-  startDate    DateTime
-  endDate      DateTime?
-  rentAmount   Float
-  status       LeaseStatus   @default(ACTIVE)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  tenant       User          @relation("TenantLeases", fields: [tenantId], references: [id])
-  unit         Unit          @relation(fields: [unitId], references: [id])
-  rentPayments RentPayment[]
+  id                String        @id @default(uuid())
+  unitId            String
+  tenantId          String
+  startDate         DateTime
+  endDate           DateTime?
+  rentAmount        Float
+  rentFrequency     RentFrequency @default(MONTHLY)
+  status            LeaseStatus   @default(ACTIVE)
+  tenantSignature   String?
+  landlordSignature String?
+  signedAt          DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  tenant            User          @relation("TenantLeases", fields: [tenantId], references: [id])
+  unit              Unit          @relation(fields: [unitId], references: [id])
+  rentPayments      RentPayment[]
+  disputes          Dispute[]
 
   @@map("leases")
 }
@@ -229,17 +258,43 @@ model RentPayment {
 }
 
 model MaintenanceRequest {
-  id          String            @id @default(uuid())
-  unitId      String
-  tenantId    String
-  description String
-  status      MaintenanceStatus @default(OPEN)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  tenant      User              @relation("TenantMaintenanceRequests", fields: [tenantId], references: [id])
-  unit        Unit              @relation(fields: [unitId], references: [id])
+  id                String            @id @default(uuid())
+  unitId            String
+  tenantId          String
+  description       String
+  imageUrl          String?
+  status            MaintenanceStatus @default(OPEN)
+  estimatedCostMin  Float?
+  estimatedCostMax  Float?
+  contractorName    String?
+  contractorPhone   String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  tenant            User              @relation("TenantMaintenanceRequests", fields: [tenantId], references: [id])
+  unit              Unit              @relation(fields: [unitId], references: [id])
 
   @@map("maintenance_requests")
+}
+
+model TenantScreening {
+  id                  String   @id @default(uuid())
+  applicantId         String
+  propertyId          String
+  incomeDocumentUrl   String?
+  identityDocumentUrl String?
+  rentFrequency       RentFrequency @default(MONTHLY)
+  status              String   @default("PENDING")
+  riskScore           String   @default("LOW")
+  rentToIncomeRatio   Float?
+  aiNotes             String?
+  paymentReference    String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  applicant           User     @relation("ApplicantScreenings", fields: [applicantId], references: [id])
+  property            Property @relation("PropertyScreenings", fields: [propertyId], references: [id])
+
+  @@map("tenant_screenings")
 }
 
 model Notification {
@@ -284,6 +339,7 @@ enum Role {
   LANDLORD
   CARETAKER
   TENANT
+  SUPPORT_AGENT
 }
 
 enum Status {
@@ -375,6 +431,7 @@ enum LandType {
 }
 
 enum ManagementAgreementStatus {
+  PENDING
   ACTIVE
   EXPIRED
   TERMINATED
@@ -385,3 +442,138 @@ enum ManagementScope {
   RENT_AND_MAINTENANCE
   FULL_MANAGEMENT
 }
+
+enum AiPlanTier {
+  FREE
+  STARTER
+  PRO
+  UNLIMITED
+}
+
+model UserAiSubscription {
+  id                    String     @id @default(uuid())
+  userId                String     @unique
+  plan                  AiPlanTier @default(FREE)
+  creditsRemaining      Int        @default(0)
+  totalCreditsAllocated Int        @default(0)
+  renewsAt              DateTime?
+  status                String     @default("ACTIVE")
+  paymentProvider       String?
+  providerSubId         String?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  user                  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_ai_subscriptions")
+}
+
+model AiUsageLog {
+  id         String   @id @default(uuid())
+  userId     String
+  feature    String
+  prompt     String
+  tokensUsed Int      @default(0)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_usage_logs")
+}
+
+enum RentFrequency {
+  MONTHLY
+  YEARLY
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  EVIDENCE_REQUIRED
+  RESOLVED
+  DISMISSED
+}
+
+enum DisputeCategory {
+  SECURITY_DEPOSIT
+  MAINTENANCE_SLA
+  LEASE_TERMINATION
+  RENT_PAYMENT
+  LISTING_MISREPRESENTATION
+  OTHER
+}
+
+model SupportInvitation {
+  id          String   @id @default(uuid())
+  email       String
+  name        String?
+  token       String   @unique
+  status      String   @default("PENDING") // PENDING, ACCEPTED, EXPIRED
+  invitedById String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  invitedBy   User     @relation("InvitedByAdmin", fields: [invitedById], references: [id])
+
+  @@map("support_invitations")
+}
+
+model Dispute {
+  id                 String          @id @default(uuid())
+  ticketNumber       String          @unique
+  category           DisputeCategory
+  status             DisputeStatus   @default(OPEN)
+  subject            String
+  description        String
+  respondentDeadline DateTime?
+
+  // Two Parties
+  initiatorId        String
+  initiator          User            @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  respondentId       String
+  respondent         User            @relation("DisputeRespondent", fields: [respondentId], references: [id])
+
+  // Context Optional Linking
+  propertyId         String?
+  property           Property?       @relation(fields: [propertyId], references: [id])
+  leaseId            String?
+  lease              Lease?          @relation(fields: [leaseId], references: [id])
+
+  // Support Agent Assigned
+  assignedToId       String?
+  assignedTo         User?           @relation("DisputeSupportAgent", fields: [assignedToId], references: [id])
+
+  resolution         String?
+  resolvedAt         DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  evidences          DisputeEvidence[]
+  messages           DisputeMessage[]
+
+  @@map("disputes")
+}
+
+model DisputeEvidence {
+  id           String   @id @default(uuid())
+  disputeId    String
+  dispute      Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  uploadedById String
+  fileUrl      String
+  fileType     String   // IMAGE, PDF, VIDEO
+  caption      String?
+  createdAt    DateTime @default(now())
+
+  @@map("dispute_evidences")
+}
+
+model DisputeMessage {
+  id                    String   @id @default(uuid())
+  disputeId             String
+  dispute               Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  senderId              String
+  message               String
+  isInternalSupportNote Boolean  @default(false)
+  createdAt             DateTime @default(now())
+
+  @@map("dispute_messages")
+}
+

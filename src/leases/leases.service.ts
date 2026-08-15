@@ -1,123 +1,159 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLeaseDto } from './dto/create-lease.dto';
-import { Role } from '@prisma/client';
+import { RenewLeaseDto } from './dto/renew-lease.dto';
 
 @Injectable()
 export class LeasesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createLease(caretakerId: string, data: CreateLeaseDto) {
+  async createLease(creatorId: string, data: CreateLeaseDto) {
     const unit = await this.prisma.unit.findUnique({
       where: { id: data.unitId },
       include: { building: true },
     });
 
-    if (!unit) throw new NotFoundException('Unit not found');
-    if (unit.building.caretakerId !== caretakerId && unit.building.landlordId !== caretakerId) {
-      throw new ForbiddenException('You do not manage this building');
-    }
-    if (unit.isOccupied) throw new BadRequestException('Unit is already occupied');
-
-    // Upgrade user to TENANT if they are just USER
-    const tenant = await this.prisma.user.findUnique({ where: { id: data.tenantId } });
-    if (!tenant) throw new NotFoundException('Tenant user not found');
-    if (tenant.role === Role.USER) {
-      await this.prisma.user.update({
-        where: { id: data.tenantId },
-        data: { role: Role.TENANT },
-      });
+    if (!unit) {
+      throw new NotFoundException('Unit not found');
     }
 
-    // Mark unit as occupied
-    await this.prisma.unit.update({
-      where: { id: data.unitId },
-      data: { isOccupied: true },
-    });
-
-    return this.prisma.lease.create({
+    const lease = await this.prisma.lease.create({
       data: {
         unitId: data.unitId,
         tenantId: data.tenantId,
         startDate: new Date(data.startDate),
         endDate: data.endDate ? new Date(data.endDate) : null,
         rentAmount: data.rentAmount,
+        rentFrequency: (data.rentFrequency as any) || 'MONTHLY',
       },
     });
+
+    await this.prisma.unit.update({
+      where: { id: data.unitId },
+      data: { isOccupied: true },
+    });
+
+    await this.prisma.user.update({
+      where: { id: data.tenantId },
+      data: { role: 'TENANT' },
+    });
+
+    return lease;
   }
 
   async getTenantLease(tenantId: string) {
-    return this.prisma.lease.findFirst({
+    const lease = await this.prisma.lease.findFirst({
       where: { tenantId, status: 'ACTIVE' },
       include: {
         unit: {
-          include: { building: true },
+          include: {
+            building: true,
+          },
+        },
+        rentPayments: {
+          orderBy: { dueDate: 'desc' },
         },
       },
     });
-  }
 
-  async offboardTenant(leaseId: string, caretakerId: string) {
-    const lease = await this.prisma.lease.findUnique({
-      where: { id: leaseId },
-      include: { unit: { include: { building: true } } },
-    });
-
-    if (!lease) throw new NotFoundException('Lease not found');
-    if (lease.unit.building.caretakerId !== caretakerId && lease.unit.building.landlordId !== caretakerId) {
-      throw new ForbiddenException('You do not manage this building');
+    if (!lease) {
+      throw new NotFoundException('No active lease found for this tenant');
     }
 
-    // Mark lease as TERMINATED
-    await this.prisma.lease.update({
+    return lease;
+  }
+
+  async signLease(leaseId: string, userId: string, signature: string, roleType: 'TENANT' | 'LANDLORD') {
+    const lease = await this.prisma.lease.findUnique({ where: { id: leaseId } });
+    if (!lease) throw new NotFoundException('Lease agreement not found');
+
+    const updateData: any = { signedAt: new Date() };
+    if (roleType === 'TENANT') {
+      updateData.tenantSignature = signature;
+    } else {
+      updateData.landlordSignature = signature;
+    }
+
+    return this.prisma.lease.update({
+      where: { id: leaseId },
+      data: updateData,
+    });
+  }
+
+  async offboardTenant(leaseId: string, actorId: string) {
+    const lease = await this.prisma.lease.findUnique({
+      where: { id: leaseId },
+    });
+
+    if (!lease) {
+      throw new NotFoundException('Lease not found');
+    }
+
+    const updatedLease = await this.prisma.lease.update({
       where: { id: leaseId },
       data: { status: 'TERMINATED' },
     });
 
-    // Free the unit
     await this.prisma.unit.update({
       where: { id: lease.unitId },
       data: { isOccupied: false },
     });
 
-    return { message: 'Tenant offboarded successfully' };
+    const activeLeases = await this.prisma.lease.count({
+      where: { tenantId: lease.tenantId, status: 'ACTIVE' },
+    });
+
+    if (activeLeases === 0) {
+      await this.prisma.user.update({
+        where: { id: lease.tenantId },
+        data: { role: 'USER' },
+      });
+    }
+
+    return updatedLease;
   }
 
-  async renewLease(leaseId: string, userId: string, role: string, data: any) {
+  async renewLease(id: string, userId: string, role: string, data: RenewLeaseDto) {
     const lease = await this.prisma.lease.findUnique({
-      where: { id: leaseId },
+      where: { id },
       include: { unit: { include: { building: true } } },
     });
 
-    if (!lease) throw new NotFoundException('Lease not found');
+    if (!lease) {
+      throw new NotFoundException('Lease not found');
+    }
 
-    if (role === Role.TENANT) {
-      if (lease.tenantId !== userId) {
-        throw new ForbiddenException('You can only renew your own lease');
-      }
-      // Automatically extend by 1 year if tenant is renewing
-      const currentEndDate = lease.endDate || new Date();
-      const newEndDate = new Date(currentEndDate);
-      newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+    if (role === 'TENANT' && lease.tenantId !== userId) {
+      throw new ForbiddenException('You can only request renewal for your own lease');
+    }
 
-      return this.prisma.lease.update({
-        where: { id: leaseId },
+    const updateData: any = {};
+    if (data.endDate) updateData.endDate = new Date(data.endDate);
+    if (data.rentAmount) updateData.rentAmount = data.rentAmount;
+    if ((data as any).status) updateData.status = (data as any).status;
+
+    return this.prisma.lease.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  async logPayment(leaseId: string, actorId: string, status: string) {
+    const payment = await this.prisma.rentPayment.findFirst({
+      where: { leaseId, status: 'PENDING' },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    if (payment) {
+      return this.prisma.rentPayment.update({
+        where: { id: payment.id },
         data: {
-          endDate: newEndDate,
-        },
-      });
-    } else {
-      if (lease.unit.building.caretakerId !== userId && lease.unit.building.landlordId !== userId && role !== Role.ADMIN && role !== Role.SUPER_ADMIN) {
-        throw new ForbiddenException('You do not manage this building');
-      }
-
-      return this.prisma.lease.update({
-        where: { id: leaseId },
-        data: {
-          endDate: data.endDate ? new Date(data.endDate) : undefined,
-          rentAmount: data.rentAmount !== undefined ? data.rentAmount : undefined,
+          status: status as any,
+          paidDate: status === 'PAID' ? new Date() : null,
         },
       });
     }
+
+    return { message: 'No pending payment found for this lease', leaseId };
   }
 }

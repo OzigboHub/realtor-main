@@ -18,15 +18,32 @@ export class MaintenanceController {
   @Post()
   @Roles('TENANT')
   @ApiOperation({ summary: 'Submit a new maintenance request' })
-  createRequest(@CurrentUser() user: any, @Body() data: CreateMaintenanceRequestDto) {
-    return this.maintenanceService.createRequest(user.id, data);
+  createRequest(
+    @CurrentUser() user: any,
+    @Body() data: CreateMaintenanceRequestDto & { imageUrl?: string },
+  ) {
+    const userId = user.id || user.userId || user.sub;
+    return this.maintenanceService.createRequest(userId, data);
   }
 
   @Get('unit/:unitId')
   @Roles('TENANT', 'CARETAKER', 'LANDLORD', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Get maintenance requests for a specific unit' })
   getRequestsByUnit(@Param('unitId') unitId: string, @CurrentUser() user: any) {
-    return this.maintenanceService.getRequestsByUnit(unitId, user.id, user.role);
+    const userId = user.id || user.userId || user.sub;
+    return this.maintenanceService.getRequestsByUnit(unitId, userId, user.role);
+  }
+
+  @Patch(':id/assign-contractor')
+  @Roles('CARETAKER', 'LANDLORD', 'ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Assign maintenance repair contractor' })
+  assignContractor(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() data: { contractorName: string; contractorPhone: string },
+  ) {
+    const userId = user.id || user.userId || user.sub;
+    return this.maintenanceService.assignContractor(id, userId, data.contractorName, data.contractorPhone);
   }
 
   @Patch(':id/status')
@@ -37,6 +54,7 @@ export class MaintenanceController {
     @CurrentUser() user: any,
     @Body() data: UpdateMaintenanceStatusDto
   ) {
-    return this.maintenanceService.updateRequestStatus(id, user.id, data);
+    const userId = user.id || user.userId || user.sub;
+    return this.maintenanceService.updateRequestStatus(id, userId, data);
   }
 }

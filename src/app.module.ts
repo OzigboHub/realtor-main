@@ -30,6 +30,12 @@ import { WhatsappModule } from './whatsapp/whatsapp.module';
 import { AuditModule } from './audit/audit.module';
 import { HealthModule } from './health/health.module';
 import { AgreementsModule } from './agreements/agreements.module';
+import { AnalyticsModule } from './analytics/analytics.module';
+import { RecommendationsModule } from './recommendations/recommendations.module';
+import { AiModule } from './ai/ai.module';
+import { TenantScreeningModule } from './tenant-screening/tenant-screening.module';
+import { GeoModule } from './geo/geo.module';
+import { DisputesModule } from './disputes/disputes.module';
 
 @Module({
   imports: [
@@ -49,6 +55,7 @@ import { AgreementsModule } from './agreements/agreements.module';
     WhatsappModule,
     NotificationsModule,
     AuditModule,
+    GeoModule,
 
     // Feature modules
     AuthModule,
@@ -67,6 +74,11 @@ import { AgreementsModule } from './agreements/agreements.module';
     UploadModule,
     HealthModule,
     AgreementsModule,
+    AnalyticsModule,
+    RecommendationsModule,
+    AiModule,
+    TenantScreeningModule,
+    DisputesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

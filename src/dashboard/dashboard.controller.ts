@@ -29,9 +29,16 @@ export class DashboardController {
 
   @Get('admin')
   @Roles('ADMIN', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Get Admin Dashboard' })
+  @ApiOperation({ summary: 'Get Admin User Dashboard' })
   getAdminDashboard() {
     return this.dashboardService.getAdminDashboard();
+  }
+
+  @Get('super-admin')
+  @Roles('SUPER_ADMIN')
+  @ApiOperation({ summary: 'Get System Admin (SUPER_ADMIN) Executive Dashboard' })
+  getSystemAdminDashboard() {
+    return this.dashboardService.getSystemAdminDashboard();
   }
 
   @Get('landlord')

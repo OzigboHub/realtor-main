@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Delete } from '@nestjs/common';
 import { LeasesService } from './leases.service';
 import { CreateLeaseDto } from './dto/create-lease.dto';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
@@ -26,6 +26,36 @@ export class LeasesController {
   @ApiOperation({ summary: 'Get active lease details for the tenant' })
   getTenantLease(@CurrentUser() user: any) {
     return this.leasesService.getTenantLease(user.id);
+  }
+
+  // Alias used by frontend tenancy API
+  @Get('my')
+  @Roles('TENANT')
+  @ApiOperation({ summary: 'Alias for my-lease — frontend compatibility' })
+  getTenantLeaseAlias(@CurrentUser() user: any) {
+    return this.leasesService.getTenantLease(user.id);
+  }
+
+  @Patch(':id/payment')
+  @Roles('CARETAKER', 'LANDLORD', 'ADMIN', 'SUPER_ADMIN')
+  @ApiOperation({ summary: 'Log a rent payment status update for a lease' })
+  logPayment(
+    @Param('id') id: string,
+    @Body() data: { status: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.leasesService.logPayment(id, user.id, data.status);
+  }
+
+  @Patch(':id/sign')
+  @ApiOperation({ summary: 'Attach digital signature to tenancy agreement' })
+  signLease(
+    @Param('id') id: string,
+    @CurrentUser() user: any,
+    @Body() data: { signature: string; roleType: 'TENANT' | 'LANDLORD' },
+  ) {
+    const userId = user.id || user.userId || user.sub;
+    return this.leasesService.signLease(id, userId, data.signature, data.roleType);
   }
 
   @Delete(':id/offboard')

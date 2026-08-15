@@ -1,4 +1,4 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -20,22 +20,22 @@ export class AgreementsService {
     if (building.landlordId !== landlordId)
       throw new ForbiddenException('You do not own this building');
 
-    // Auto-terminate any current ACTIVE agreement
-    await this.prisma.managementAgreement.updateMany({
-      where: { buildingId, status: ManagementAgreementStatus.ACTIVE },
-      data: { status: ManagementAgreementStatus.TERMINATED },
-    });
+    // Do not auto-terminate ACTIVE agreements yet. They are terminated when the new agreement is ACCEPTED.
 
     return this.prisma.managementAgreement.create({
       data: {
         buildingId,
+        caretakerId: dto.caretakerId,
         scope: dto.scope,
+        durationMonths: dto.durationMonths,
+        slaTargetDaysRent: dto.slaTargetDaysRent,
+        slaTargetDaysMaintenance: dto.slaTargetDaysMaintenance,
         startDate: new Date(dto.startDate),
         endDate: dto.endDate ? new Date(dto.endDate) : null,
         managementFee: dto.managementFee,
         feeType: dto.feeType ?? 'PERCENTAGE',
         notes: dto.notes,
-        status: ManagementAgreementStatus.ACTIVE,
+        status: ManagementAgreementStatus.PENDING,
       },
     });
   }
@@ -144,5 +144,47 @@ export class AgreementsService {
         `Your management agreement (${scope}) does not permit this action.`,
       );
     }
+  }
+
+  // FR-12.4: Accept agreement (Caretaker)
+  async accept(agreementId: string, caretakerId: string) {
+    const agreement = await this.prisma.managementAgreement.findUnique({
+      where: { id: agreementId },
+      include: { building: true },
+    });
+    if (!agreement) throw new NotFoundException('Agreement not found');
+    if (agreement.caretakerId !== caretakerId)
+      throw new ForbiddenException('You are not the designated caretaker for this agreement');
+    if (agreement.status !== ManagementAgreementStatus.PENDING)
+      throw new BadRequestException('Only PENDING agreements can be accepted');
+
+    // Terminate existing active agreements for the building
+    await this.prisma.managementAgreement.updateMany({
+      where: { buildingId: agreement.buildingId, status: ManagementAgreementStatus.ACTIVE },
+      data: { status: ManagementAgreementStatus.TERMINATED },
+    });
+
+    // Update agreement to active
+    const activeAgreement = await this.prisma.managementAgreement.update({
+      where: { id: agreementId },
+      data: { status: ManagementAgreementStatus.ACTIVE },
+    });
+
+    // Assign caretaker to building
+    await this.prisma.building.update({
+      where: { id: agreement.buildingId },
+      data: { caretakerId },
+    });
+
+    return activeAgreement;
+  }
+
+  // Get pending agreements for a caretaker
+  async findPendingForCaretaker(caretakerId: string) {
+    return this.prisma.managementAgreement.findMany({
+      where: { caretakerId, status: ManagementAgreementStatus.PENDING },
+      include: { building: true },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

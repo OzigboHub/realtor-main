@@ -20,4 +20,8 @@ export class CreateLeaseDto {
   @IsNumber()
   @IsNotEmpty()
   rentAmount: number;
+
+  @IsString()
+  @IsOptional()
+  rentFrequency?: 'MONTHLY' | 'YEARLY';
 }

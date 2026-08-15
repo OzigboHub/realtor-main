@@ -5,13 +5,23 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import helmet from 'helmet';
+import * as express from 'express';
+import * as path from 'path';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
+  // Serve local uploads folder statically
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
   // Security headers
-  app.use(helmet());
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
+
 
   // CORS — allow local development frontend origins
   app.enableCors({

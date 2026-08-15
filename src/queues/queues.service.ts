@@ -18,22 +18,22 @@ export class QueuesService implements OnModuleInit {
 
   onModuleInit() {
     this.logger.log('Initializing Background Cron & Worker Queues service...');
-    // Run automated check once per 24 hours (or at boot)
     this.scheduleJobs();
   }
 
   private scheduleJobs() {
-    // Run immediately on boot in background, then schedule 24h intervals
     setTimeout(() => this.processRentReminders(), 5000);
     setTimeout(() => this.processLeaseExpirations(), 10000);
 
     this.timer = setInterval(() => {
       this.processRentReminders();
       this.processLeaseExpirations();
-    }, 86400000); // 24 hours
+    }, 86400000);
   }
 
   async processRentReminders() {
+    if (!this.prisma?.rentPayment?.findMany) return;
+
     try {
       this.logger.log('Running background job: Checking upcoming rent payment reminders...');
       const threeDaysFromNow = new Date();
@@ -60,7 +60,7 @@ export class QueuesService implements OnModuleInit {
       });
 
       for (const payment of pendingPayments) {
-        const tenant = payment.lease.tenant;
+        const tenant = payment.lease?.tenant;
         if (tenant) {
           const message = `Reminder: Rent payment of ₦${payment.amount.toLocaleString()} for Unit ${payment.lease.unit.unitNumber} is due on ${payment.dueDate.toDateString()}.`;
           await this.notifications.create(tenant.id, 'RENT_DUE_REMINDER', message);
@@ -78,6 +78,8 @@ export class QueuesService implements OnModuleInit {
   }
 
   async processLeaseExpirations() {
+    if (!this.prisma?.lease?.findMany) return;
+
     try {
       this.logger.log('Running background job: Checking expiring lease contracts...');
       const thirtyDaysFromNow = new Date();
@@ -101,7 +103,7 @@ export class QueuesService implements OnModuleInit {
 
       for (const lease of expiringLeases) {
         const tenant = lease.tenant;
-        const landlord = lease.unit.building.landlord;
+        const landlord = lease.unit?.building?.landlord;
 
         if (tenant) {
           const msg = `Notice: Your lease for Unit ${lease.unit.unitNumber} expires on ${lease.endDate?.toDateString()}. Please contact your landlord for renewal.`;

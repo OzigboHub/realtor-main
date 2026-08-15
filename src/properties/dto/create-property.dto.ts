@@ -30,6 +30,11 @@ export class CreatePropertyDto {
   @IsNumber({}, { message: 'Price must be a valid number.' })
   price: number;
 
+  @ApiProperty({ required: false, enum: ['MONTHLY', 'YEARLY'] })
+  @IsOptional()
+  @IsEnum(['MONTHLY', 'YEARLY'], { message: 'Rent frequency must be MONTHLY or YEARLY.' })
+  rentFrequency?: 'MONTHLY' | 'YEARLY';
+
   @ApiProperty({ description: 'Property type name, e.g. Duplex, Studio, Penthouse, Office' })
   @IsNotEmpty({ message: 'Property type is required. Please select or enter a property type (e.g. Duplex, Studio, Penthouse, Office).' })
   @IsString({ message: 'Property type must be a text string.' })

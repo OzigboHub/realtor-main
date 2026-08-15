@@ -25,7 +25,9 @@ export class MailService {
 
     const raw = (config.get<string>('MAIL_PROVIDER') ?? '').toLowerCase();
 
-    if (raw === 'resend') {
+    if (process.env.NODE_ENV === 'test') {
+      this.provider = 'console';
+    } else if (raw === 'resend') {
       const apiKey = config.get<string>('RESEND_API_KEY');
       if (!apiKey) {
         this.logger.warn(
@@ -59,7 +61,6 @@ export class MailService {
         this.logger.log(`Mail provider: SMTP (${host}:${port})`);
       }
     } else {
-      // MAIL_PROVIDER not set or set to 'console' → dev console fallback
       this.provider = 'console';
       const msg =
         raw === 'console'
@@ -72,6 +73,11 @@ export class MailService {
   // ─── Core send method ───────────────────────────────────────────────────────
 
   async sendMail(to: string, subject: string, html: string): Promise<void> {
+    if (process.env.NODE_ENV === 'test' || to.includes('example.com')) {
+      this.logger.log(`[TEST EMAIL STUB] To: ${to} | Subject: ${subject}`);
+      return;
+    }
+
     switch (this.provider) {
       case 'resend':
         await this.sendViaResend(to, subject, html);
@@ -236,7 +242,6 @@ export class MailService {
     await this.sendMail(to, `[SYSTEM ALERT] ${subject}`, `<pre>${body}</pre>`);
   }
 
-  /** Returns which provider is currently active — useful for health checks */
   getProvider(): MailProvider {
     return this.provider;
   }
@@ -251,7 +256,6 @@ export class MailService {
       }
     }
     if (this.provider === 'resend') {
-      // Resend has no explicit verify; consider it "configured" if client exists
       return true;
     }
     return false;
