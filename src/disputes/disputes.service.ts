@@ -15,10 +15,14 @@ export class DisputesService {
 
   async createDispute(userId: string, dto: CreateDisputeDto) {
     if (userId === dto.respondentId) {
-      throw new BadRequestException('You cannot file a dispute ticket against yourself');
+      throw new BadRequestException(
+        'You cannot file a dispute ticket against yourself',
+      );
     }
 
-    const respondent = await this.prisma.user.findUnique({ where: { id: dto.respondentId } });
+    const respondent = await this.prisma.user.findUnique({
+      where: { id: dto.respondentId },
+    });
     if (!respondent) throw new NotFoundException('Respondent user not found');
 
     const ticketNumber = `DISP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -51,8 +55,12 @@ export class DisputesService {
           : undefined,
       },
       include: {
-        initiator: { select: { id: true, name: true, email: true, role: true } },
-        respondent: { select: { id: true, name: true, email: true, role: true } },
+        initiator: {
+          select: { id: true, name: true, email: true, role: true },
+        },
+        respondent: {
+          select: { id: true, name: true, email: true, role: true },
+        },
         evidences: true,
       },
     });
@@ -64,7 +72,11 @@ export class DisputesService {
     const where: any = {};
     if (status) where.status = status;
 
-    if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'SUPPORT_AGENT') {
+    if (
+      userRole === 'ADMIN' ||
+      userRole === 'SUPER_ADMIN' ||
+      userRole === 'SUPPORT_AGENT'
+    ) {
       // Support Agents and Admins see all platform disputes or assigned disputes
     } else {
       // Users see disputes where they are initiator or respondent
@@ -75,8 +87,12 @@ export class DisputesService {
       where,
       orderBy: { createdAt: 'desc' },
       include: {
-        initiator: { select: { id: true, name: true, email: true, role: true } },
-        respondent: { select: { id: true, name: true, email: true, role: true } },
+        initiator: {
+          select: { id: true, name: true, email: true, role: true },
+        },
+        respondent: {
+          select: { id: true, name: true, email: true, role: true },
+        },
         assignedTo: { select: { id: true, name: true, email: true } },
         evidences: true,
         _count: { select: { messages: true } },
@@ -88,11 +104,31 @@ export class DisputesService {
     const dispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
       include: {
-        initiator: { select: { id: true, name: true, email: true, role: true, phone: true } },
-        respondent: { select: { id: true, name: true, email: true, role: true, phone: true } },
+        initiator: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            phone: true,
+          },
+        },
+        respondent: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            phone: true,
+          },
+        },
         assignedTo: { select: { id: true, name: true, email: true } },
-        property: { select: { id: true, title: true, location: true, price: true } },
-        lease: { select: { id: true, rentAmount: true, status: true, startDate: true } },
+        property: {
+          select: { id: true, title: true, location: true, price: true },
+        },
+        lease: {
+          select: { id: true, rentAmount: true, status: true, startDate: true },
+        },
         evidences: { orderBy: { createdAt: 'asc' } },
         messages: { orderBy: { createdAt: 'asc' } },
       },
@@ -100,21 +136,37 @@ export class DisputesService {
 
     if (!dispute) throw new NotFoundException('Dispute ticket not found');
 
-    const isStaff = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT'].includes(userRole);
-    if (!isStaff && dispute.initiatorId !== userId && dispute.respondentId !== userId) {
-      throw new ForbiddenException('You do not have permission to view this dispute ticket');
+    const isStaff = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT'].includes(
+      userRole,
+    );
+    if (
+      !isStaff &&
+      dispute.initiatorId !== userId &&
+      dispute.respondentId !== userId
+    ) {
+      throw new ForbiddenException(
+        'You do not have permission to view this dispute ticket',
+      );
     }
 
     // Filter out internal support notes for regular users
     if (!isStaff) {
-      dispute.messages = dispute.messages.filter((m) => !m.isInternalSupportNote);
+      dispute.messages = dispute.messages.filter(
+        (m) => !m.isInternalSupportNote,
+      );
     }
 
     return dispute;
   }
 
-  async submitEvidence(disputeId: string, userId: string, dto: { fileUrl: string; fileType?: string; caption?: string }) {
-    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
+  async submitEvidence(
+    disputeId: string,
+    userId: string,
+    dto: { fileUrl: string; fileType?: string; caption?: string },
+  ) {
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+    });
     if (!dispute) throw new NotFoundException('Dispute ticket not found');
 
     const evidence = await this.prisma.disputeEvidence.create({
@@ -122,13 +174,17 @@ export class DisputesService {
         disputeId,
         uploadedById: userId,
         fileUrl: dto.fileUrl,
-        fileType: dto.fileType || (dto.fileUrl.endsWith('.pdf') ? 'PDF' : 'IMAGE'),
+        fileType:
+          dto.fileType || (dto.fileUrl.endsWith('.pdf') ? 'PDF' : 'IMAGE'),
         caption: dto.caption || 'Supporting Evidence',
       },
     });
 
     // Update status to UNDER_REVIEW if respondent uploaded counter-evidence
-    if (dispute.status === DisputeStatus.OPEN && userId === dispute.respondentId) {
+    if (
+      dispute.status === DisputeStatus.OPEN &&
+      userId === dispute.respondentId
+    ) {
       await this.prisma.dispute.update({
         where: { id: disputeId },
         data: { status: DisputeStatus.UNDER_REVIEW },
@@ -138,13 +194,28 @@ export class DisputesService {
     return evidence;
   }
 
-  async addMessage(disputeId: string, userId: string, userRole: string, dto: { message: string; isInternalSupportNote?: boolean }) {
-    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
+  async addMessage(
+    disputeId: string,
+    userId: string,
+    userRole: string,
+    dto: { message: string; isInternalSupportNote?: boolean },
+  ) {
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+    });
     if (!dispute) throw new NotFoundException('Dispute ticket not found');
 
-    const isStaff = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT'].includes(userRole);
-    if (!isStaff && dispute.initiatorId !== userId && dispute.respondentId !== userId) {
-      throw new ForbiddenException('You are not authorized to post on this dispute ticket');
+    const isStaff = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT'].includes(
+      userRole,
+    );
+    if (
+      !isStaff &&
+      dispute.initiatorId !== userId &&
+      dispute.respondentId !== userId
+    ) {
+      throw new ForbiddenException(
+        'You are not authorized to post on this dispute ticket',
+      );
     }
 
     return this.prisma.disputeMessage.create({
@@ -152,13 +223,17 @@ export class DisputesService {
         disputeId,
         senderId: userId,
         message: dto.message,
-        isInternalSupportNote: isStaff ? Boolean(dto.isInternalSupportNote) : false,
+        isInternalSupportNote: isStaff
+          ? Boolean(dto.isInternalSupportNote)
+          : false,
       },
     });
   }
 
   async assignMediator(disputeId: string, supportAgentId: string) {
-    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+    });
     if (!dispute) throw new NotFoundException('Dispute ticket not found');
 
     return this.prisma.dispute.update({
@@ -170,8 +245,14 @@ export class DisputesService {
     });
   }
 
-  async resolveDispute(disputeId: string, supportAgentId: string, dto: ResolveDisputeDto) {
-    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
+  async resolveDispute(
+    disputeId: string,
+    supportAgentId: string,
+    dto: ResolveDisputeDto,
+  ) {
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+    });
     if (!dispute) throw new NotFoundException('Dispute ticket not found');
 
     const updated = await this.prisma.dispute.update({

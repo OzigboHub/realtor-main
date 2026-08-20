@@ -8,7 +8,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { DisputesService } from './disputes.service';
 import { CreateDisputeDto } from './dto/create-dispute.dto';
 import { ResolveDisputeDto } from './dto/resolve-dispute.dto';
@@ -32,19 +37,28 @@ export class DisputesController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get dispute tickets for user or support agent queue' })
-  getDisputes(@CurrentUser() user: any, @Query('status') status?: DisputeStatus) {
+  @ApiOperation({
+    summary: 'Get dispute tickets for user or support agent queue',
+  })
+  getDisputes(
+    @CurrentUser() user: any,
+    @Query('status') status?: DisputeStatus,
+  ) {
     return this.disputesService.getDisputes(user.userId, user.role, status);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get dispute details with evidence timeline and messages' })
+  @ApiOperation({
+    summary: 'Get dispute details with evidence timeline and messages',
+  })
   getDisputeById(@Param('id') id: string, @CurrentUser() user: any) {
     return this.disputesService.getDisputeById(id, user.userId, user.role);
   }
 
   @Post(':id/evidence')
-  @ApiOperation({ summary: 'Upload counter-evidence or photo proof to a dispute ticket' })
+  @ApiOperation({
+    summary: 'Upload counter-evidence or photo proof to a dispute ticket',
+  })
   submitEvidence(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -54,7 +68,9 @@ export class DisputesController {
   }
 
   @Post(':id/messages')
-  @ApiOperation({ summary: 'Post a message or internal mediator note on a dispute ticket' })
+  @ApiOperation({
+    summary: 'Post a message or internal mediator note on a dispute ticket',
+  })
   addMessage(
     @Param('id') id: string,
     @CurrentUser() user: any,
@@ -74,7 +90,9 @@ export class DisputesController {
   @Patch(':id/resolve')
   @Roles('ADMIN', 'SUPER_ADMIN', 'SUPPORT_AGENT')
   @UseGuards(RolesGuard)
-  @ApiOperation({ summary: 'Issue an official binding resolution ruling on a dispute' })
+  @ApiOperation({
+    summary: 'Issue an official binding resolution ruling on a dispute',
+  })
   resolveDispute(
     @Param('id') id: string,
     @CurrentUser() user: any,

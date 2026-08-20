@@ -1,4 +1,12 @@
-import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, IsPositive, IsIn } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsPositive,
+  IsIn,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { ManagementScope } from '@prisma/client';
 
@@ -32,7 +40,8 @@ export class CreateAgreementDto {
   endDate?: string;
 
   @ApiProperty({
-    description: 'Management fee value. Interpreted as a percentage or flat amount based on feeType.',
+    description:
+      'Management fee value. Interpreted as a percentage or flat amount based on feeType.',
     example: 10,
   })
   @IsNumber()
@@ -53,27 +62,40 @@ export class CreateAgreementDto {
   @ApiProperty({
     required: false,
     description: 'Free-text notes or additional clauses',
-    example: 'Caretaker must provide monthly statements by the 5th of each month.',
+    example:
+      'Caretaker must provide monthly statements by the 5th of each month.',
   })
   @IsOptional()
   @IsString()
   notes?: string;
 
-  @ApiProperty({ description: 'The assigned Caretaker ID', example: 'user-uuid' })
+  @ApiProperty({
+    description: 'The assigned Caretaker ID',
+    example: 'user-uuid',
+  })
   @IsString()
   caretakerId: string;
 
-  @ApiProperty({ description: 'Duration of the agreement in months', example: 12 })
+  @ApiProperty({
+    description: 'Duration of the agreement in months',
+    example: 12,
+  })
   @IsNumber()
   @IsPositive()
   durationMonths: number;
 
-  @ApiProperty({ description: 'SLA target days for rent collection', example: 3 })
+  @ApiProperty({
+    description: 'SLA target days for rent collection',
+    example: 3,
+  })
   @IsNumber()
   @IsPositive()
   slaTargetDaysRent: number;
 
-  @ApiProperty({ description: 'SLA target days for maintenance resolution', example: 2 })
+  @ApiProperty({
+    description: 'SLA target days for maintenance resolution',
+    example: 2,
+  })
   @IsNumber()
   @IsPositive()
   slaTargetDaysMaintenance: number;

@@ -8,7 +8,8 @@ export class UpdateAgreementDto extends PartialType(CreateAgreementDto) {
   @ApiProperty({
     required: false,
     enum: ManagementAgreementStatus,
-    description: 'Manually override agreement status (e.g. EXPIRED, TERMINATED)',
+    description:
+      'Manually override agreement status (e.g. EXPIRED, TERMINATED)',
   })
   @IsOptional()
   @IsEnum(ManagementAgreementStatus)

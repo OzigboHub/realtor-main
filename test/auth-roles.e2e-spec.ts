@@ -33,8 +33,10 @@ describe('Complete Authentication & Role Workflows (e2e)', () => {
       $disconnect: jest.fn().mockResolvedValue(undefined),
       user: {
         findUnique: jest.fn().mockImplementation(({ where }) => {
-          if (where.id) return Promise.resolve(usersStore.get(where.id) || null);
-          if (where.email) return Promise.resolve(usersStore.get(where.email) || null);
+          if (where.id)
+            return Promise.resolve(usersStore.get(where.id) || null);
+          if (where.email)
+            return Promise.resolve(usersStore.get(where.email) || null);
           return Promise.resolve(null);
         }),
         findFirst: jest.fn().mockImplementation(({ where }) => {
@@ -97,7 +99,9 @@ describe('Complete Authentication & Role Workflows (e2e)', () => {
     jwtService = moduleFixture.get<JwtService>(JwtService);
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new GlobalExceptionFilter());
 
     await app.init();
@@ -124,7 +128,10 @@ describe('Complete Authentication & Role Workflows (e2e)', () => {
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/auth/login')
-      .send({ email: 'superadmin@realtor.com', password: 'SuperAdminPassword123!' })
+      .send({
+        email: 'superadmin@realtor.com',
+        password: 'SuperAdminPassword123!',
+      })
       .expect(201);
 
     expect(res.body.access_token).toBeDefined();

@@ -35,7 +35,9 @@ export class QueuesService implements OnModuleInit {
     if (!this.prisma?.rentPayment?.findMany) return;
 
     try {
-      this.logger.log('Running background job: Checking upcoming rent payment reminders...');
+      this.logger.log(
+        'Running background job: Checking upcoming rent payment reminders...',
+      );
       const threeDaysFromNow = new Date();
       threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
 
@@ -63,15 +65,25 @@ export class QueuesService implements OnModuleInit {
         const tenant = payment.lease?.tenant;
         if (tenant) {
           const message = `Reminder: Rent payment of ₦${payment.amount.toLocaleString()} for Unit ${payment.lease.unit.unitNumber} is due on ${payment.dueDate.toDateString()}.`;
-          await this.notifications.create(tenant.id, 'RENT_DUE_REMINDER', message);
-          await this.mail.sendMail(tenant.email, 'Upcoming Rent Payment Reminder', message);
+          await this.notifications.create(
+            tenant.id,
+            'RENT_DUE_REMINDER',
+            message,
+          );
+          await this.mail.sendMail(
+            tenant.email,
+            'Upcoming Rent Payment Reminder',
+            message,
+          );
           if (tenant.phone) {
             await this.whatsapp.sendMessage(tenant.phone, message);
           }
         }
       }
 
-      this.logger.log(`Rent payment reminders processed for ${pendingPayments.length} tenants.`);
+      this.logger.log(
+        `Rent payment reminders processed for ${pendingPayments.length} tenants.`,
+      );
     } catch (err: any) {
       this.logger.error(`Error processing rent reminders: ${err.message}`);
     }
@@ -81,7 +93,9 @@ export class QueuesService implements OnModuleInit {
     if (!this.prisma?.lease?.findMany) return;
 
     try {
-      this.logger.log('Running background job: Checking expiring lease contracts...');
+      this.logger.log(
+        'Running background job: Checking expiring lease contracts...',
+      );
       const thirtyDaysFromNow = new Date();
       thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
@@ -107,17 +121,31 @@ export class QueuesService implements OnModuleInit {
 
         if (tenant) {
           const msg = `Notice: Your lease for Unit ${lease.unit.unitNumber} expires on ${lease.endDate?.toDateString()}. Please contact your landlord for renewal.`;
-          await this.notifications.create(tenant.id, 'LEASE_EXPIRING_SOON', msg);
-          await this.mail.sendMail(tenant.email, 'Lease Expiration Notice', msg);
+          await this.notifications.create(
+            tenant.id,
+            'LEASE_EXPIRING_SOON',
+            msg,
+          );
+          await this.mail.sendMail(
+            tenant.email,
+            'Lease Expiration Notice',
+            msg,
+          );
         }
 
         if (landlord) {
           const msg = `Notice: Lease for tenant ${tenant?.name} (Unit ${lease.unit.unitNumber}) expires on ${lease.endDate?.toDateString()}.`;
-          await this.notifications.create(landlord.id, 'LEASE_EXPIRING_SOON', msg);
+          await this.notifications.create(
+            landlord.id,
+            'LEASE_EXPIRING_SOON',
+            msg,
+          );
         }
       }
 
-      this.logger.log(`Lease expiration notices processed for ${expiringLeases.length} leases.`);
+      this.logger.log(
+        `Lease expiration notices processed for ${expiringLeases.length} leases.`,
+      );
     } catch (err: any) {
       this.logger.error(`Error processing lease expirations: ${err.message}`);
     }

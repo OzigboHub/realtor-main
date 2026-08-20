@@ -44,17 +44,27 @@ export class WhatsappService {
         body: JSON.stringify(payload),
       });
       if (!response.ok) {
-        throw new Error(`WhatsApp API error: ${response.status} ${await response.text()}`);
+        throw new Error(
+          `WhatsApp API error: ${response.status} ${await response.text()}`,
+        );
       }
       this.logger.log(`WhatsApp message sent to ${to}`);
     } catch (err: any) {
-      this.logger.error(`Failed to send WhatsApp message to ${to}: ${err.message}`);
+      this.logger.error(
+        `Failed to send WhatsApp message to ${to}: ${err.message}`,
+      );
     }
   }
 
-  async sendTemplate(to: string, templateName: string, params: string[]): Promise<void> {
+  async sendTemplate(
+    to: string,
+    templateName: string,
+    params: string[],
+  ): Promise<void> {
     if (!this.configured) {
-      this.logger.debug(`[WHATSAPP STUB] Template: ${templateName} To: ${to} Params: ${JSON.stringify(params)}`);
+      this.logger.debug(
+        `[WHATSAPP STUB] Template: ${templateName} To: ${to} Params: ${JSON.stringify(params)}`,
+      );
       return;
     }
 

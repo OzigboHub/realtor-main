@@ -23,6 +23,12 @@ import { GoogleAuthGuard } from './google.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, GoogleAuthGuard, PrismaService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    GoogleStrategy,
+    GoogleAuthGuard,
+    PrismaService,
+  ],
 })
 export class AuthModule {}

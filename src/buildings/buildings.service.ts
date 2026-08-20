@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBuildingDto } from './dto/create-building.dto';
 import { InviteCaretakerDto } from './dto/invite-caretaker.dto';
@@ -23,8 +28,8 @@ export class BuildingsService {
       where: { landlordId },
       include: {
         caretaker: { select: { id: true, name: true, email: true } },
-        _count: { select: { units: true } }
-      }
+        _count: { select: { units: true } },
+      },
     });
   }
 
@@ -33,11 +38,11 @@ export class BuildingsService {
       where: { id },
       include: {
         units: true,
-        caretaker: { select: { id: true, name: true, email: true } }
-      }
+        caretaker: { select: { id: true, name: true, email: true } },
+      },
     });
     if (!building) throw new NotFoundException('Building not found');
-    
+
     if (role === Role.LANDLORD && building.landlordId !== userId) {
       throw new ForbiddenException('You do not own this building');
     }
@@ -48,20 +53,27 @@ export class BuildingsService {
     return building;
   }
 
-  async inviteCaretaker(buildingId: string, landlordId: string, data: InviteCaretakerDto) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+  async inviteCaretaker(
+    buildingId: string,
+    landlordId: string,
+    data: InviteCaretakerDto,
+  ) {
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
-    if (building.landlordId !== landlordId) throw new ForbiddenException('Not your building');
+    if (building.landlordId !== landlordId)
+      throw new ForbiddenException('Not your building');
 
     const token = randomBytes(32).toString('hex');
-    
+
     const invitation = await this.prisma.buildingInvitation.create({
       data: {
         buildingId,
         email: data.email,
         whatsappNumber: data.whatsappNumber,
         token,
-      }
+      },
     });
 
     // In a real application, you would send an email or WhatsApp message here.
@@ -75,20 +87,24 @@ export class BuildingsService {
   }
 
   async acceptInvitation(token: string, userId: string) {
-    const invitation = await this.prisma.buildingInvitation.findUnique({ where: { token } });
-    if (!invitation) throw new NotFoundException('Invalid or expired invitation token');
-    if (invitation.status === 'ACCEPTED') throw new BadRequestException('Invitation already accepted');
+    const invitation = await this.prisma.buildingInvitation.findUnique({
+      where: { token },
+    });
+    if (!invitation)
+      throw new NotFoundException('Invalid or expired invitation token');
+    if (invitation.status === 'ACCEPTED')
+      throw new BadRequestException('Invitation already accepted');
 
     // Assign caretaker to building
     await this.prisma.building.update({
       where: { id: invitation.buildingId },
-      data: { caretakerId: userId }
+      data: { caretakerId: userId },
     });
 
     // Mark invitation as accepted
     await this.prisma.buildingInvitation.update({
       where: { id: invitation.id },
-      data: { status: 'ACCEPTED' }
+      data: { status: 'ACCEPTED' },
     });
 
     // Upgrade user role to CARETAKER if they are just a USER
@@ -96,7 +112,7 @@ export class BuildingsService {
     if (user && user.role === Role.USER) {
       await this.prisma.user.update({
         where: { id: userId },
-        data: { role: Role.CARETAKER }
+        data: { role: Role.CARETAKER },
       });
     }
 
@@ -104,13 +120,16 @@ export class BuildingsService {
   }
 
   async removeCaretaker(buildingId: string, landlordId: string) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
-    if (building.landlordId !== landlordId) throw new ForbiddenException('Not your building');
+    if (building.landlordId !== landlordId)
+      throw new ForbiddenException('Not your building');
 
     await this.prisma.building.update({
       where: { id: buildingId },
-      data: { caretakerId: null }
+      data: { caretakerId: null },
     });
 
     return { message: 'Caretaker removed successfully' };

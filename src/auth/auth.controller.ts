@@ -1,8 +1,29 @@
-import { Body, Controller, Post, Patch, Param, UseGuards, Get, Request, Redirect } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Post,
+  Patch,
+  Param,
+  UseGuards,
+  Get,
+  Request,
+  Redirect,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Role } from '@prisma/client';
-import { ForgotPasswordDto, LoginDto, RegisterUserDto, ResetPasswordDto } from './dto/create-auth.dto';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterUserDto,
+  ResetPasswordDto,
+} from './dto/create-auth.dto';
 import { RolesGuard } from 'src/common/roles.guard';
 import { JwtAuthGuard } from './jwt.guard';
 import { Roles } from 'src/common/roles.decorators';
@@ -28,8 +49,14 @@ export class AuthController {
   })
   @ApiBody({ type: RegisterUserDto })
   @ApiResponse({ status: 201, description: 'Registration successful.' })
-  @ApiResponse({ status: 400, description: 'Validation error or email already exists.' })
-  @ApiResponse({ status: 403, description: 'SUPER_ADMIN cannot self-register.' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or email already exists.',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'SUPER_ADMIN cannot self-register.',
+  })
   @ApiResponse({ status: 404, description: 'Property not found.' })
   register(@Body() dto: RegisterUserDto, @Request() req: any) {
     return this.authService.register(dto, req.ip);
@@ -43,7 +70,10 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 200, description: 'Login successful.' })
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
-  @ApiResponse({ status: 403, description: 'Account pending approval or blocked.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Account pending approval or blocked.',
+  })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
@@ -61,10 +91,18 @@ export class AuthController {
       'Approval is role-and-property-aware. ADMIN approved by SUPER_ADMIN only. LANDLORD/AGENT by ADMIN+. CARETAKER by property LANDLORD, ADMIN+. TENANT by property LANDLORD, CARETAKER, ADMIN+.',
   })
   @ApiResponse({ status: 200, description: 'User approved.' })
-  @ApiResponse({ status: 403, description: 'Caller is not permitted to approve this role.' })
+  @ApiResponse({
+    status: 403,
+    description: 'Caller is not permitted to approve this role.',
+  })
   @ApiResponse({ status: 404, description: 'User not found.' })
   approveUser(@Param('id') id: string, @Request() req: any) {
-    return this.authService.approveUser(id, req.user.userId, req.user.role, req.ip);
+    return this.authService.approveUser(
+      id,
+      req.user.userId,
+      req.user.role,
+      req.ip,
+    );
   }
 
   // =============================
@@ -77,7 +115,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Reject a pending user registration' })
   @ApiResponse({ status: 200, description: 'User rejected.' })
   rejectUser(@Param('id') id: string, @Request() req: any) {
-    return this.authService.rejectUser(id, req.user.userId, req.user.role, req.ip);
+    return this.authService.rejectUser(
+      id,
+      req.user.userId,
+      req.user.role,
+      req.ip,
+    );
   }
 
   // =============================
@@ -103,7 +146,12 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
   unblockUser(@Param('id') id: string, @Request() req: any) {
-    return this.authService.blockUser(id, false, req.user.userId, req.user.role);
+    return this.authService.blockUser(
+      id,
+      false,
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   // =============================
@@ -116,7 +164,10 @@ export class AuthController {
       'Sends a password reset link to the provided email address. Always returns a generic success message to prevent email enumeration.',
   })
   @ApiBody({ type: ForgotPasswordDto })
-  @ApiResponse({ status: 201, description: 'Reset email sent (if account exists).' })
+  @ApiResponse({
+    status: 201,
+    description: 'Reset email sent (if account exists).',
+  })
   forgotPassword(@Body() dto: ForgotPasswordDto, @Request() req: any) {
     return this.authService.forgotPassword(dto, req.ip);
   }
@@ -144,7 +195,8 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @ApiOperation({
     summary: 'Redirect to Google sign-in',
-    description: 'Browser navigates here; backend redirects to Google consent screen.',
+    description:
+      'Browser navigates here; backend redirects to Google consent screen.',
   })
   @ApiResponse({ status: 302, description: 'Redirects to Google.' })
   googleAuth() {
@@ -162,10 +214,14 @@ export class AuthController {
     description:
       'Google redirects here after user approval. Backend signs a JWT and redirects to the frontend with ?token=<jwt>.',
   })
-  @ApiResponse({ status: 302, description: 'Redirects to frontend with token.' })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to frontend with token.',
+  })
   async googleCallback(@Request() req: any) {
     const result = await this.authService.googleLogin(req.user, req.ip);
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
     return {
       url: `${frontendUrl}/auth/callback?token=${result.access_token}`,
     };

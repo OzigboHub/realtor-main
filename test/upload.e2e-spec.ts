@@ -34,12 +34,18 @@ describe('Upload Module & Cloud Media Storage (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.setGlobalPrefix('api/v1');
     await app.init();
 
     jwtService = app.get<JwtService>(JwtService);
-    userToken = jwtService.sign({ sub: 'usr-888', email: 'media.tester@example.com', role: 'USER' });
+    userToken = jwtService.sign({
+      sub: 'usr-888',
+      email: 'media.tester@example.com',
+      role: 'USER',
+    });
   });
 
   afterAll(async () => {

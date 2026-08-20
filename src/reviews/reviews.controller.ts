@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { ReviewsService } from './reviews.service';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -16,9 +25,9 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Add a review for a property' })
   create(
-    @Param('propertyId') propertyId: string, 
-    @Body() createReviewDto: CreateReviewDto, 
-    @CurrentUser() user: any
+    @Param('propertyId') propertyId: string,
+    @Body() createReviewDto: CreateReviewDto,
+    @CurrentUser() user: any,
   ) {
     return this.reviewsService.create(user.userId, propertyId, createReviewDto);
   }
@@ -33,7 +42,11 @@ export class ReviewsController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Edit a review (Owner)' })
-  update(@Param('id') id: string, @Body() updateReviewDto: UpdateReviewDto, @CurrentUser() user: any) {
+  update(
+    @Param('id') id: string,
+    @Body() updateReviewDto: UpdateReviewDto,
+    @CurrentUser() user: any,
+  ) {
     return this.reviewsService.update(id, user.userId, updateReviewDto);
   }
 

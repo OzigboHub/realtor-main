@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
@@ -13,8 +18,10 @@ export class AppointmentsService {
 
   async create(userId: string, createAppointmentDto: CreateAppointmentDto) {
     const { propertyId, date, message } = createAppointmentDto;
-    
-    const property = await this.prisma.property.findUnique({ where: { id: propertyId } });
+
+    const property = await this.prisma.property.findUnique({
+      where: { id: propertyId },
+    });
     if (!property) throw new NotFoundException('Property not found');
 
     const appointmentDate = new Date(date);
@@ -31,15 +38,34 @@ export class AppointmentsService {
       },
     });
 
-    // Notify agent of new tour request
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, email: true },
+    });
+    const userName = user?.name || user?.email || 'A buyer';
+    const dateFormatted = appointmentDate.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    // 1. Notify agent of new tour request
     if (property.agentId) {
       await this.notifications.create(
         property.agentId,
         'APPOINTMENT_REQUESTED',
-        `New viewing tour request for "${property.title}" on ${appointmentDate.toLocaleDateString()}`,
-        { appointmentId: appt.id, propertyId },
+        `${userName} requested a viewing tour for "${property.title}" on ${dateFormatted}`,
+        { appointmentId: appt.id, propertyId, userName },
       );
     }
+
+    // 2. Notify the buyer with confirmation
+    await this.notifications.create(
+      userId,
+      'APPOINTMENT_REQUESTED',
+      `Your viewing tour request for "${property.title}" on ${dateFormatted} has been submitted.`,
+      { appointmentId: appt.id, propertyId },
+    );
 
     return appt;
   }
@@ -83,7 +109,10 @@ export class AppointmentsService {
     if (role === 'AGENT') {
       return this.prisma.appointment.findMany({
         where: { property: { agentId: userId } },
-        include: { user: { select: { id: true, name: true, email: true, phone: true } }, property: true },
+        include: {
+          user: { select: { id: true, name: true, email: true, phone: true } },
+          property: true,
+        },
         orderBy: { date: 'asc' },
       });
     }
@@ -102,16 +131,27 @@ export class AppointmentsService {
     });
   }
 
-  async updateStatus(id: string, userId: string, role: string, updateDto: UpdateAppointmentStatusDto) {
+  async updateStatus(
+    id: string,
+    userId: string,
+    role: string,
+    updateDto: UpdateAppointmentStatusDto,
+  ) {
     const appointment = await this.prisma.appointment.findUnique({
       where: { id },
-      include: { property: true }
+      include: { property: true },
     });
-    
+
     if (!appointment) throw new NotFoundException('Appointment not found');
 
-    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && appointment.property.agentId !== userId) {
-      throw new ForbiddenException('Only the property agent or an admin can update the status');
+    if (
+      role !== 'ADMIN' &&
+      role !== 'SUPER_ADMIN' &&
+      appointment.property.agentId !== userId
+    ) {
+      throw new ForbiddenException(
+        'Only the property agent or an admin can update the status',
+      );
     }
 
     const updated = await this.prisma.appointment.update({
@@ -131,14 +171,51 @@ export class AppointmentsService {
   }
 
   async remove(id: string, userId: string, role: string) {
-    const appointment = await this.prisma.appointment.findUnique({ where: { id } });
+    const appointment = await this.prisma.appointment.findUnique({
+      where: { id },
+      include: { property: true, user: { select: { name: true, email: true } } },
+    });
     if (!appointment) throw new NotFoundException('Appointment not found');
 
-    if (appointment.userId !== userId && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('You can only cancel your own appointments');
+    if (
+      appointment.userId !== userId &&
+      role !== 'ADMIN' &&
+      role !== 'SUPER_ADMIN' &&
+      appointment.property?.agentId !== userId
+    ) {
+      throw new ForbiddenException('You are not authorized to cancel this appointment');
     }
 
     await this.prisma.appointment.delete({ where: { id } });
+
+    const propTitle = appointment.property?.title || 'Property';
+    const dateFormatted = new Date(appointment.date).toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    // Notify agent if user cancelled
+    if (appointment.property?.agentId && appointment.userId === userId) {
+      const cancellerName = appointment.user?.name || 'A buyer';
+      await this.notifications.create(
+        appointment.property.agentId,
+        'APPOINTMENT_CANCELLED',
+        `${cancellerName} cancelled viewing tour for "${propTitle}" scheduled on ${dateFormatted}`,
+        { appointmentId: id, propertyId: appointment.propertyId },
+      );
+    }
+
+    // Notify user if agent/admin cancelled
+    if (appointment.userId !== userId) {
+      await this.notifications.create(
+        appointment.userId,
+        'APPOINTMENT_CANCELLED',
+        `Your viewing tour for "${propTitle}" scheduled on ${dateFormatted} was cancelled.`,
+        { appointmentId: id, propertyId: appointment.propertyId },
+      );
+    }
+
     return { success: true };
   }
 }

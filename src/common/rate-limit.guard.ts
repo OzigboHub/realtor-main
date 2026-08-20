@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 
 @Injectable()
 export class PublicRateLimitGuard implements CanActivate {
@@ -10,7 +16,7 @@ export class PublicRateLimitGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     // Get client IP address
     const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown';
-    
+
     const now = Date.now();
     const client = this.clients.get(ip);
 

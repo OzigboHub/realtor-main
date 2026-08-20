@@ -33,8 +33,10 @@ export class GeoService {
 
     // 1. Device & Browser Parsing
     let deviceType: 'MOBILE' | 'TABLET' | 'DESKTOP' = 'DESKTOP';
-    if (/mobile|iphone|ipod|android.*mobile/i.test(userAgent)) deviceType = 'MOBILE';
-    else if (/ipad|tablet|android(?!.*mobile)/i.test(userAgent)) deviceType = 'TABLET';
+    if (/mobile|iphone|ipod|android.*mobile/i.test(userAgent))
+      deviceType = 'MOBILE';
+    else if (/ipad|tablet|android(?!.*mobile)/i.test(userAgent))
+      deviceType = 'TABLET';
 
     let os = 'Unknown';
     if (/iphone|ipad|ipod/i.test(userAgent)) os = 'iOS';
@@ -46,16 +48,27 @@ export class GeoService {
     let browser = 'Unknown';
     if (/edg/i.test(userAgent)) browser = 'Edge';
     else if (/chrome|crios/i.test(userAgent)) browser = 'Chrome';
-    else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent)) browser = 'Safari';
+    else if (/safari/i.test(userAgent) && !/chrome/i.test(userAgent))
+      browser = 'Safari';
     else if (/firefox|fxios/i.test(userAgent)) browser = 'Firefox';
 
     // 2. Country & Geo Resolution
-    let countryCode = cfCountry || 'NG';
-    let countryName = countryCode === 'NG' ? 'Nigeria' : countryCode === 'GB' ? 'United Kingdom' : 'United States';
-    let city = countryCode === 'NG' ? 'Lagos' : countryCode === 'GB' ? 'London' : 'New York';
-    let region = countryCode === 'NG' ? 'Lagos State' : 'Greater Region';
-    let latitude = countryCode === 'NG' ? 6.5244 : 51.5074;
-    let longitude = countryCode === 'NG' ? 3.3792 : -0.1278;
+    const countryCode = cfCountry || 'NG';
+    const countryName =
+      countryCode === 'NG'
+        ? 'Nigeria'
+        : countryCode === 'GB'
+          ? 'United Kingdom'
+          : 'United States';
+    const city =
+      countryCode === 'NG'
+        ? 'Lagos'
+        : countryCode === 'GB'
+          ? 'London'
+          : 'New York';
+    const region = countryCode === 'NG' ? 'Lagos State' : 'Greater Region';
+    const latitude = countryCode === 'NG' ? 6.5244 : 51.5074;
+    const longitude = countryCode === 'NG' ? 3.3792 : -0.1278;
 
     // Check currency & gateway binding
     const isNigeria = countryCode === 'NG';
@@ -68,7 +81,8 @@ export class GeoService {
     else if (isEU) currency = 'EUR';
 
     return {
-      ipAddress: cleanIp === '127.0.0.1' || cleanIp === '::1' ? '102.89.22.1' : cleanIp,
+      ipAddress:
+        cleanIp === '127.0.0.1' || cleanIp === '::1' ? '102.89.22.1' : cleanIp,
       countryCode,
       countryName,
       city,

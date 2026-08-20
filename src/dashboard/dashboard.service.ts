@@ -9,11 +9,14 @@ export class DashboardService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const [totalFavorites, totalAppointments, totalMessages] = await Promise.all([
-      this.prisma.favorite.count({ where: { userId } }),
-      this.prisma.appointment.count({ where: { userId } }),
-      this.prisma.message.count({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } }),
-    ]);
+    const [totalFavorites, totalAppointments, totalMessages] =
+      await Promise.all([
+        this.prisma.favorite.count({ where: { userId } }),
+        this.prisma.appointment.count({ where: { userId } }),
+        this.prisma.message.count({
+          where: { OR: [{ senderId: userId }, { receiverId: userId }] },
+        }),
+      ]);
 
     return {
       role: 'USER',
@@ -27,12 +30,17 @@ export class DashboardService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const [totalProperties, totalAppointments, totalReviews, totalMessages] = await Promise.all([
-      this.prisma.property.count({ where: { agentId: userId } }),
-      this.prisma.appointment.count({ where: { property: { agentId: userId } } }),
-      this.prisma.review.count({ where: { property: { agentId: userId } } }),
-      this.prisma.message.count({ where: { OR: [{ senderId: userId }, { receiverId: userId }] } }),
-    ]);
+    const [totalProperties, totalAppointments, totalReviews, totalMessages] =
+      await Promise.all([
+        this.prisma.property.count({ where: { agentId: userId } }),
+        this.prisma.appointment.count({
+          where: { property: { agentId: userId } },
+        }),
+        this.prisma.review.count({ where: { property: { agentId: userId } } }),
+        this.prisma.message.count({
+          where: { OR: [{ senderId: userId }, { receiverId: userId }] },
+        }),
+      ]);
 
     return {
       role: 'AGENT',
@@ -44,12 +52,13 @@ export class DashboardService {
   }
 
   async getAdminDashboard() {
-    const [totalUsers, pendingAgents, totalProperties, totalAppointments] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.user.count({ where: { role: 'AGENT', status: 'PENDING' } }),
-      this.prisma.property.count(),
-      this.prisma.appointment.count(),
-    ]);
+    const [totalUsers, pendingAgents, totalProperties, totalAppointments] =
+      await Promise.all([
+        this.prisma.user.count(),
+        this.prisma.user.count({ where: { role: 'AGENT', status: 'PENDING' } }),
+        this.prisma.property.count(),
+        this.prisma.appointment.count(),
+      ]);
 
     return {
       role: 'ADMIN',
@@ -101,7 +110,11 @@ export class DashboardService {
 
     let mobileCount = 0;
     let desktopCount = 0;
-    const countryCounts: Record<string, number> = { Nigeria: 140, 'United States': 32, 'United Kingdom': 18 };
+    const countryCounts: Record<string, number> = {
+      Nigeria: 140,
+      'United States': 32,
+      'United Kingdom': 18,
+    };
 
     recentAuditLogs.forEach((log) => {
       const ua = log.userAgent || '';
@@ -116,9 +129,21 @@ export class DashboardService {
       mobilePercentage: Math.round((mobileCount / totalLogs) * 100) || 68,
       desktopPercentage: Math.round((desktopCount / totalLogs) * 100) || 32,
       topCountries: [
-        { country: 'Nigeria', code: 'NG', count: countryCounts['Nigeria'] || 140 },
-        { country: 'United States', code: 'US', count: countryCounts['United States'] || 32 },
-        { country: 'United Kingdom', code: 'GB', count: countryCounts['United Kingdom'] || 18 },
+        {
+          country: 'Nigeria',
+          code: 'NG',
+          count: countryCounts['Nigeria'] || 140,
+        },
+        {
+          country: 'United States',
+          code: 'US',
+          count: countryCounts['United States'] || 32,
+        },
+        {
+          country: 'United Kingdom',
+          code: 'GB',
+          count: countryCounts['United Kingdom'] || 18,
+        },
       ],
     };
 
@@ -137,12 +162,27 @@ export class DashboardService {
   }
 
   async getLandlordDashboard(userId: string) {
-    const [totalBuildings, totalUnits, occupiedUnits, openMaintenance, overdueRent] = await Promise.all([
+    const [
+      totalBuildings,
+      totalUnits,
+      occupiedUnits,
+      openMaintenance,
+      overdueRent,
+    ] = await Promise.all([
       this.prisma.building.count({ where: { landlordId: userId } }),
       this.prisma.unit.count({ where: { building: { landlordId: userId } } }),
-      this.prisma.unit.count({ where: { building: { landlordId: userId }, isOccupied: true } }),
-      this.prisma.maintenanceRequest.count({ where: { unit: { building: { landlordId: userId } }, status: 'OPEN' } }),
-      this.prisma.rentPayment.count({ where: { lease: { unit: { building: { landlordId: userId } } }, status: 'OVERDUE' } }),
+      this.prisma.unit.count({
+        where: { building: { landlordId: userId }, isOccupied: true },
+      }),
+      this.prisma.maintenanceRequest.count({
+        where: { unit: { building: { landlordId: userId } }, status: 'OPEN' },
+      }),
+      this.prisma.rentPayment.count({
+        where: {
+          lease: { unit: { building: { landlordId: userId } } },
+          status: 'OVERDUE',
+        },
+      }),
     ]);
 
     return {
@@ -157,12 +197,28 @@ export class DashboardService {
   }
 
   async getCaretakerDashboard(userId: string) {
-    const [managedBuildings, openMaintenance, pendingRent, overdueRent] = await Promise.all([
-      this.prisma.building.count({ where: { caretakerId: userId } }),
-      this.prisma.maintenanceRequest.count({ where: { unit: { building: { caretakerId: userId } }, status: 'OPEN' } }),
-      this.prisma.rentPayment.count({ where: { lease: { unit: { building: { caretakerId: userId } } }, status: 'PENDING' } }),
-      this.prisma.rentPayment.count({ where: { lease: { unit: { building: { caretakerId: userId } } }, status: 'OVERDUE' } }),
-    ]);
+    const [managedBuildings, openMaintenance, pendingRent, overdueRent] =
+      await Promise.all([
+        this.prisma.building.count({ where: { caretakerId: userId } }),
+        this.prisma.maintenanceRequest.count({
+          where: {
+            unit: { building: { caretakerId: userId } },
+            status: 'OPEN',
+          },
+        }),
+        this.prisma.rentPayment.count({
+          where: {
+            lease: { unit: { building: { caretakerId: userId } } },
+            status: 'PENDING',
+          },
+        }),
+        this.prisma.rentPayment.count({
+          where: {
+            lease: { unit: { building: { caretakerId: userId } } },
+            status: 'OVERDUE',
+          },
+        }),
+      ]);
 
     return {
       role: 'CARETAKER',

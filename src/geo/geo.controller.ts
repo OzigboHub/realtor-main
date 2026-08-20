@@ -9,7 +9,10 @@ export class GeoController {
   constructor(private readonly geoService: GeoService) {}
 
   @Get('detect')
-  @ApiOperation({ summary: 'Detect device metrics, IP address, country, city, and currency recommendation' })
+  @ApiOperation({
+    summary:
+      'Detect device metrics, IP address, country, city, and currency recommendation',
+  })
   async detectGeo(@Req() req: Request): Promise<GeoDetectionResult> {
     return this.geoService.detectFromRequest(req);
   }

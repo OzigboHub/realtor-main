@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../common/redis/redis.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
@@ -119,9 +124,12 @@ export class PropertiesService {
     if (type) where.type = type;
     if (listingType) where.listingType = listingType;
     if (location) where.location = { contains: location, mode: 'insensitive' };
-    if (bedrooms !== undefined && bedrooms !== null) where.bedrooms = Number(bedrooms);
-    if (bathrooms !== undefined && bathrooms !== null) where.bathrooms = Number(bathrooms);
-    if (toilets !== undefined && toilets !== null) where.toilets = Number(toilets);
+    if (bedrooms !== undefined && bedrooms !== null)
+      where.bedrooms = Number(bedrooms);
+    if (bathrooms !== undefined && bathrooms !== null)
+      where.bathrooms = Number(bathrooms);
+    if (toilets !== undefined && toilets !== null)
+      where.toilets = Number(toilets);
     if (category) where.category = category;
     if (purpose) where.purpose = purpose;
     if (houseType) where.houseType = houseType;
@@ -211,7 +219,12 @@ export class PropertiesService {
       });
     }
 
-    const response = { data: mappedData, total, page: Number(page), limit: Number(limit) };
+    const response = {
+      data: mappedData,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+    };
 
     // Save to Redis cache (300 seconds TTL)
     await this.redis.set(cacheKey, JSON.stringify(response), 300);
@@ -300,7 +313,12 @@ export class PropertiesService {
     };
   }
 
-  async update(id: string, updatePropertyDto: UpdatePropertyDto, userId: string, role: string) {
+  async update(
+    id: string,
+    updatePropertyDto: UpdatePropertyDto,
+    userId: string,
+    role: string,
+  ) {
     const property = await this.findOne(id);
 
     if (
@@ -309,10 +327,15 @@ export class PropertiesService {
       role !== 'ADMIN' &&
       role !== 'SUPER_ADMIN'
     ) {
-      throw new ForbiddenException('You are not allowed to update this property');
+      throw new ForbiddenException(
+        'You are not allowed to update this property',
+      );
     }
 
-    const sanitized = this.sanitizeSubtypes(updatePropertyDto, property.category);
+    const sanitized = this.sanitizeSubtypes(
+      updatePropertyDto,
+      property.category,
+    );
     const updated = await this.prisma.property.update({
       where: { id },
       data: sanitized,
@@ -330,7 +353,9 @@ export class PropertiesService {
       role !== 'ADMIN' &&
       role !== 'SUPER_ADMIN'
     ) {
-      throw new ForbiddenException('You are not allowed to delete this property');
+      throw new ForbiddenException(
+        'You are not allowed to delete this property',
+      );
     }
 
     await this.prisma.favorite.deleteMany({ where: { propertyId: id } });
@@ -356,7 +381,9 @@ export class PropertiesService {
       role !== 'SUPER_ADMIN' &&
       role !== 'LANDLORD'
     ) {
-      throw new ForbiddenException('You are not authorised to view this checklist');
+      throw new ForbiddenException(
+        'You are not authorised to view this checklist',
+      );
     }
 
     const isRental = property.purpose === ListingPurpose.RENT;
@@ -365,7 +392,7 @@ export class PropertiesService {
       {
         step: 'title',
         label: 'Add a descriptive title',
-        complete: !!(property.title?.trim()),
+        complete: !!property.title?.trim(),
         tip: 'A clear title with property type and location gets 3× more clicks.',
       },
       {
@@ -389,7 +416,7 @@ export class PropertiesService {
       {
         step: 'location',
         label: 'Specify a location',
-        complete: !!(property.location?.trim()),
+        complete: !!property.location?.trim(),
         tip: 'Include city, neighbourhood, and a recognisable landmark if possible.',
       },
       {
@@ -401,13 +428,13 @@ export class PropertiesService {
       {
         step: 'category',
         label: 'Select property category',
-        complete: !!(property.category),
+        complete: !!property.category,
         tip: null,
       },
       {
         step: 'listingType',
         label: `Set listing type (${isRental ? 'Rent' : 'Sale'})`,
-        complete: !!(property.listingType),
+        complete: !!property.listingType,
         tip: isRental
           ? 'For rentals, consider adding amenities like parking or security.'
           : 'For sales, including legal documents significantly increases buyer trust.',

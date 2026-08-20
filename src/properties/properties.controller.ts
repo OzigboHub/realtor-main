@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { PropertiesService } from './properties.service';
 import { CreatePropertyDto } from './dto/create-property.dto';
 import { UpdatePropertyDto } from './dto/update-property.dto';
@@ -20,8 +30,13 @@ export class PropertiesController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('AGENT', 'LANDLORD', 'ADMIN', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Create a new property listing (Agent/Landlord/Admin)' })
-  create(@Body() createPropertyDto: CreatePropertyDto, @CurrentUser() user: any) {
+  @ApiOperation({
+    summary: 'Create a new property listing (Agent/Landlord/Admin)',
+  })
+  create(
+    @Body() createPropertyDto: CreatePropertyDto,
+    @CurrentUser() user: any,
+  ) {
     return this.propertiesService.create(createPropertyDto, user.userId);
   }
 
@@ -99,8 +114,17 @@ export class PropertiesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('AGENT', 'LANDLORD', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Update property details (Owner/Landlord/Admin)' })
-  update(@Param('id') id: string, @Body() updatePropertyDto: UpdatePropertyDto, @CurrentUser() user: any) {
-    return this.propertiesService.update(id, updatePropertyDto, user.userId, user.role);
+  update(
+    @Param('id') id: string,
+    @Body() updatePropertyDto: UpdatePropertyDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.propertiesService.update(
+      id,
+      updatePropertyDto,
+      user.userId,
+      user.role,
+    );
   }
 
   @Delete(':id')
@@ -125,7 +149,10 @@ export class PropertiesController {
       'Only the property owner, Landlords, and Admins can access this.',
   })
   getListingChecklist(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.propertiesService.getListingChecklist(id, user.userId, user.role);
+    return this.propertiesService.getListingChecklist(
+      id,
+      user.userId,
+      user.role,
+    );
   }
 }
-

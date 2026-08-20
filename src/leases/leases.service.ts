@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLeaseDto } from './dto/create-lease.dto';
 import { RenewLeaseDto } from './dto/renew-lease.dto';
@@ -63,8 +67,15 @@ export class LeasesService {
     return lease;
   }
 
-  async signLease(leaseId: string, userId: string, signature: string, roleType: 'TENANT' | 'LANDLORD') {
-    const lease = await this.prisma.lease.findUnique({ where: { id: leaseId } });
+  async signLease(
+    leaseId: string,
+    userId: string,
+    signature: string,
+    roleType: 'TENANT' | 'LANDLORD',
+  ) {
+    const lease = await this.prisma.lease.findUnique({
+      where: { id: leaseId },
+    });
     if (!lease) throw new NotFoundException('Lease agreement not found');
 
     const updateData: any = { signedAt: new Date() };
@@ -113,7 +124,12 @@ export class LeasesService {
     return updatedLease;
   }
 
-  async renewLease(id: string, userId: string, role: string, data: RenewLeaseDto) {
+  async renewLease(
+    id: string,
+    userId: string,
+    role: string,
+    data: RenewLeaseDto,
+  ) {
     const lease = await this.prisma.lease.findUnique({
       where: { id },
       include: { unit: { include: { building: true } } },
@@ -124,7 +140,9 @@ export class LeasesService {
     }
 
     if (role === 'TENANT' && lease.tenantId !== userId) {
-      throw new ForbiddenException('You can only request renewal for your own lease');
+      throw new ForbiddenException(
+        'You can only request renewal for your own lease',
+      );
     }
 
     const updateData: any = {};

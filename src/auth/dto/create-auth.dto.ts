@@ -1,5 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, IsUUID, MinLength, ValidateIf } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MinLength,
+  ValidateIf,
+} from 'class-validator';
 import { Role } from '@prisma/client';
 
 export class RegisterUserDto {
@@ -24,7 +33,14 @@ export class RegisterUserDto {
 
   @ApiProperty({
     example: 'USER',
-    enum: [Role.USER, Role.ADMIN, Role.LANDLORD, Role.CARETAKER, Role.TENANT, Role.AGENT],
+    enum: [
+      Role.USER,
+      Role.ADMIN,
+      Role.LANDLORD,
+      Role.CARETAKER,
+      Role.TENANT,
+      Role.AGENT,
+    ],
     required: false,
     description: 'SUPER_ADMIN cannot self-register.',
   })
@@ -38,9 +54,26 @@ export class RegisterUserDto {
     description: 'Required for CARETAKER and TENANT registrations.',
   })
   @ValidateIf((o) => o.role === Role.CARETAKER || o.role === Role.TENANT)
-  @IsNotEmpty({ message: 'propertyId is required for CARETAKER and TENANT registration.' })
+  @IsNotEmpty({
+    message: 'propertyId is required for CARETAKER and TENANT registration.',
+  })
   @IsUUID('4', { message: 'propertyId must be a valid UUID.' })
   propertyId?: string;
+
+  @ApiProperty({ example: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb', required: false })
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
+
+  @ApiProperty({ example: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb', required: false })
+  @IsOptional()
+  @IsString()
+  avatar?: string;
+
+  @ApiProperty({ example: 'Real estate investor and licensed architect.', required: false })
+  @IsOptional()
+  @IsString()
+  bio?: string;
 }
 
 export class LoginDto {
@@ -71,4 +104,3 @@ export class ResetPasswordDto {
   @MinLength(6)
   newPassword: string;
 }
-

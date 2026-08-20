@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  UseGuards,
+  Delete,
+} from '@nestjs/common';
 import { LeasesService } from './leases.service';
 import { CreateLeaseDto } from './dto/create-lease.dto';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
@@ -55,7 +64,12 @@ export class LeasesController {
     @Body() data: { signature: string; roleType: 'TENANT' | 'LANDLORD' },
   ) {
     const userId = user.id || user.userId || user.sub;
-    return this.leasesService.signLease(id, userId, data.signature, data.roleType);
+    return this.leasesService.signLease(
+      id,
+      userId,
+      data.signature,
+      data.roleType,
+    );
   }
 
   @Delete(':id/offboard')
@@ -67,11 +81,14 @@ export class LeasesController {
 
   @Post(':id/renew')
   @Roles('TENANT', 'CARETAKER', 'LANDLORD', 'ADMIN', 'SUPER_ADMIN')
-  @ApiOperation({ summary: 'Renew a lease (Tenant can extend their own, Caretaker/Landlord can update terms)' })
+  @ApiOperation({
+    summary:
+      'Renew a lease (Tenant can extend their own, Caretaker/Landlord can update terms)',
+  })
   renewLease(
     @Param('id') id: string,
     @CurrentUser() user: any,
-    @Body() data: import('./dto/renew-lease.dto').RenewLeaseDto
+    @Body() data: import('./dto/renew-lease.dto').RenewLeaseDto,
   ) {
     return this.leasesService.renewLease(id, user.id, user.role, data);
   }

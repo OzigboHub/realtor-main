@@ -15,7 +15,12 @@ import {
 } from './ai-subscription.service';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { CurrentUser } from 'src/common/current-user.decorator';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiProperty,
+} from '@nestjs/swagger';
 
 export class InitiateCheckoutDto {
   @ApiProperty({ example: 'STARTER' })
@@ -56,12 +61,12 @@ export class VerifyPaymentDto {
 @UseGuards(JwtAuthGuard)
 @Controller('ai/subscription')
 export class AiSubscriptionController {
-  constructor(
-    private readonly subscriptionService: AiSubscriptionService,
-  ) {}
+  constructor(private readonly subscriptionService: AiSubscriptionService) {}
 
   @Get('me')
-  @ApiOperation({ summary: 'Get current user AI credit balance and active subscription plan' })
+  @ApiOperation({
+    summary: 'Get current user AI credit balance and active subscription plan',
+  })
   async getMySubscription(@CurrentUser() user: any) {
     const userId = user.id || user.userId || user.sub;
     return this.subscriptionService.getUserSubscription(userId);
@@ -69,22 +74,21 @@ export class AiSubscriptionController {
 
   @Post('checkout')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Initiate a payment checkout for an AI credit subscription plan (Stripe / Paystack)' })
-  async checkout(
-    @CurrentUser() user: any,
-    @Body() dto: InitiateCheckoutDto,
-  ) {
+  @ApiOperation({
+    summary:
+      'Initiate a payment checkout for an AI credit subscription plan (Stripe / Paystack)',
+  })
+  async checkout(@CurrentUser() user: any, @Body() dto: InitiateCheckoutDto) {
     const userId = user.id || user.userId || user.sub;
     return this.subscriptionService.createCheckoutSession(userId, dto);
   }
 
   @Post('verify')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Verify payment completion and grant AI credits to user account' })
-  async verifyPayment(
-    @CurrentUser() user: any,
-    @Body() dto: VerifyPaymentDto,
-  ) {
+  @ApiOperation({
+    summary: 'Verify payment completion and grant AI credits to user account',
+  })
+  async verifyPayment(@CurrentUser() user: any, @Body() dto: VerifyPaymentDto) {
     const userId = user.id || user.userId || user.sub;
     return this.subscriptionService.verifyPayment(
       userId,

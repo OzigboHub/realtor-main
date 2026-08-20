@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
@@ -25,8 +33,14 @@ export class MessagesController {
   }
 
   @Get(':conversationId')
-  @ApiOperation({ summary: 'Get messages with a specific user (conversationId is the other user ID)' })
-  getConversation(@Param('conversationId') otherUserId: string, @CurrentUser() user: any) {
+  @ApiOperation({
+    summary:
+      'Get messages with a specific user (conversationId is the other user ID)',
+  })
+  getConversation(
+    @Param('conversationId') otherUserId: string,
+    @CurrentUser() user: any,
+  ) {
     return this.messagesService.getConversation(user.userId, otherUserId);
   }
 

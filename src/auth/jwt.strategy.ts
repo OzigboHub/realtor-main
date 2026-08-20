@@ -30,13 +30,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Verify user in database is not blocked
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true, isBlocked: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isBlocked: true,
+        status: true,
+      },
     });
 
     if (!user || user.isBlocked) {
       throw new UnauthorizedException('Account suspended or not found.');
     }
 
-    return { id: user.id, userId: user.id, email: user.email, role: user.role, status: user.status };
+    return {
+      id: user.id,
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    };
   }
 }

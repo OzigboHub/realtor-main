@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import { MaintenanceService } from './maintenance.service';
 import { CreateMaintenanceRequestDto } from './dto/create-maintenance-request.dto';
 import { UpdateMaintenanceStatusDto } from './dto/update-maintenance-status.dto';
@@ -43,7 +51,12 @@ export class MaintenanceController {
     @Body() data: { contractorName: string; contractorPhone: string },
   ) {
     const userId = user.id || user.userId || user.sub;
-    return this.maintenanceService.assignContractor(id, userId, data.contractorName, data.contractorPhone);
+    return this.maintenanceService.assignContractor(
+      id,
+      userId,
+      data.contractorName,
+      data.contractorPhone,
+    );
   }
 
   @Patch(':id/status')
@@ -52,7 +65,7 @@ export class MaintenanceController {
   updateRequestStatus(
     @Param('id') id: string,
     @CurrentUser() user: any,
-    @Body() data: UpdateMaintenanceStatusDto
+    @Body() data: UpdateMaintenanceStatusDto,
   ) {
     const userId = user.id || user.userId || user.sub;
     return this.maintenanceService.updateRequestStatus(id, userId, data);

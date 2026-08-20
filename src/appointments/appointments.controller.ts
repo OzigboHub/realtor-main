@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AppointmentsService } from './appointments.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentStatusDto } from './dto/update-appointment-status.dto';
@@ -17,13 +27,18 @@ export class AppointmentsController {
 
   @Post()
   @ApiOperation({ summary: 'Schedule a visit' })
-  create(@Body() createAppointmentDto: CreateAppointmentDto, @CurrentUser() user: any) {
+  create(
+    @Body() createAppointmentDto: CreateAppointmentDto,
+    @CurrentUser() user: any,
+  ) {
     const userId = user.id || user.userId || user.sub;
     return this.appointmentsService.create(userId, createAppointmentDto);
   }
 
   @Get('available-slots')
-  @ApiOperation({ summary: 'Get available time slots for property viewing calendar' })
+  @ApiOperation({
+    summary: 'Get available time slots for property viewing calendar',
+  })
   getAvailableSlots(
     @Query('propertyId') propertyId: string,
     @Query('date') date?: string,
@@ -43,12 +58,17 @@ export class AppointmentsController {
   @Roles('AGENT', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({ summary: 'Update appointment status (Agent/Admin)' })
   updateStatus(
-    @Param('id') id: string, 
-    @Body() updateDto: UpdateAppointmentStatusDto, 
-    @CurrentUser() user: any
+    @Param('id') id: string,
+    @Body() updateDto: UpdateAppointmentStatusDto,
+    @CurrentUser() user: any,
   ) {
     const userId = user.id || user.userId || user.sub;
-    return this.appointmentsService.updateStatus(id, userId, user.role, updateDto);
+    return this.appointmentsService.updateStatus(
+      id,
+      userId,
+      user.role,
+      updateDto,
+    );
   }
 
   @Delete(':id')

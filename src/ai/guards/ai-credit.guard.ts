@@ -34,8 +34,16 @@ export class AiCreditGuard implements CanActivate {
         data: {
           userId,
           plan: 'FREE',
-          creditsRemaining: 0,
-          totalCreditsAllocated: 0,
+          creditsRemaining: 20,
+          totalCreditsAllocated: 20,
+        },
+      });
+    } else if (sub.plan === 'FREE' && sub.totalCreditsAllocated === 0) {
+      sub = await this.prisma.userAiSubscription.update({
+        where: { userId },
+        data: {
+          creditsRemaining: 20,
+          totalCreditsAllocated: 20,
         },
       });
     }

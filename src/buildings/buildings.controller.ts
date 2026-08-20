@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Delete,
+  UseGuards,
+  Query,
+} from '@nestjs/common';
 import { BuildingsService } from './buildings.service';
 import { CreateBuildingDto } from './dto/create-building.dto';
 import { InviteCaretakerDto } from './dto/invite-caretaker.dto';
@@ -42,13 +51,15 @@ export class BuildingsController {
   inviteCaretaker(
     @Param('id') id: string,
     @CurrentUser() user: any,
-    @Body() data: InviteCaretakerDto
+    @Body() data: InviteCaretakerDto,
   ) {
     return this.buildingsService.inviteCaretaker(id, user.id, data);
   }
 
   @Post('invitations/accept')
-  @ApiOperation({ summary: 'Accept a caretaker invitation (must be logged in)' })
+  @ApiOperation({
+    summary: 'Accept a caretaker invitation (must be logged in)',
+  })
   acceptInvitation(@Query('token') token: string, @CurrentUser() user: any) {
     return this.buildingsService.acceptInvitation(token, user.id);
   }

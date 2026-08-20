@@ -14,8 +14,14 @@ export class AgreementsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // FR-12.1: Create a Management Agreement
-  async create(buildingId: string, landlordId: string, dto: CreateAgreementDto) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+  async create(
+    buildingId: string,
+    landlordId: string,
+    dto: CreateAgreementDto,
+  ) {
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
     if (building.landlordId !== landlordId)
       throw new ForbiddenException('You do not own this building');
@@ -42,10 +48,16 @@ export class AgreementsService {
 
   // FR-12.5: Full agreement history for a building
   async findAllForBuilding(buildingId: string, userId: string, role: string) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
 
-    if (role !== 'ADMIN' && role !== 'SUPER_ADMIN' && building.landlordId !== userId) {
+    if (
+      role !== 'ADMIN' &&
+      role !== 'SUPER_ADMIN' &&
+      building.landlordId !== userId
+    ) {
       throw new ForbiddenException('Access denied');
     }
 
@@ -57,7 +69,9 @@ export class AgreementsService {
 
   // FR-12.3: Active agreement (compliance view)
   async findActive(buildingId: string, userId: string, role: string) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
 
     const isLandlord = building.landlordId === userId;
@@ -77,7 +91,11 @@ export class AgreementsService {
   }
 
   // FR-12.4: Renew / modify agreement terms
-  async update(agreementId: string, landlordId: string, dto: UpdateAgreementDto) {
+  async update(
+    agreementId: string,
+    landlordId: string,
+    dto: UpdateAgreementDto,
+  ) {
     const agreement = await this.prisma.managementAgreement.findUnique({
       where: { id: agreementId },
       include: { building: true },
@@ -91,8 +109,12 @@ export class AgreementsService {
       data: {
         ...(dto.scope && { scope: dto.scope }),
         ...(dto.startDate && { startDate: new Date(dto.startDate) }),
-        ...(dto.endDate !== undefined && { endDate: dto.endDate ? new Date(dto.endDate) : null }),
-        ...(dto.managementFee !== undefined && { managementFee: dto.managementFee }),
+        ...(dto.endDate !== undefined && {
+          endDate: dto.endDate ? new Date(dto.endDate) : null,
+        }),
+        ...(dto.managementFee !== undefined && {
+          managementFee: dto.managementFee,
+        }),
         ...(dto.feeType && { feeType: dto.feeType }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
         ...(dto.status && { status: dto.status }),
@@ -154,13 +176,18 @@ export class AgreementsService {
     });
     if (!agreement) throw new NotFoundException('Agreement not found');
     if (agreement.caretakerId !== caretakerId)
-      throw new ForbiddenException('You are not the designated caretaker for this agreement');
+      throw new ForbiddenException(
+        'You are not the designated caretaker for this agreement',
+      );
     if (agreement.status !== ManagementAgreementStatus.PENDING)
       throw new BadRequestException('Only PENDING agreements can be accepted');
 
     // Terminate existing active agreements for the building
     await this.prisma.managementAgreement.updateMany({
-      where: { buildingId: agreement.buildingId, status: ManagementAgreementStatus.ACTIVE },
+      where: {
+        buildingId: agreement.buildingId,
+        status: ManagementAgreementStatus.ACTIVE,
+      },
       data: { status: ManagementAgreementStatus.TERMINATED },
     });
 

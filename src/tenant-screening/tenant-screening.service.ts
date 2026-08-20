@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface ApplyTenantScreeningDto {
@@ -21,15 +25,22 @@ export class TenantScreeningService {
 
     // Simulate AI Document Analysis & Risk Scoring
     const riskScores = ['LOW', 'LOW', 'MODERATE', 'LOW'];
-    const randomRisk = riskScores[Math.floor(Math.random() * riskScores.length)];
-    const estimatedRentToIncome = Number((Math.random() * (0.35 - 0.15) + 0.15).toFixed(2)); // 15% - 35%
+    const randomRisk =
+      riskScores[Math.floor(Math.random() * riskScores.length)];
+    const estimatedRentToIncome = Number(
+      (Math.random() * (0.35 - 0.15) + 0.15).toFixed(2),
+    ); // 15% - 35%
 
     const screening = await this.prisma.tenantScreening.create({
       data: {
         applicantId: userId,
         propertyId: dto.propertyId,
-        incomeDocumentUrl: dto.incomeDocumentUrl || 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c',
-        identityDocumentUrl: dto.identityDocumentUrl || 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f',
+        incomeDocumentUrl:
+          dto.incomeDocumentUrl ||
+          'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c',
+        identityDocumentUrl:
+          dto.identityDocumentUrl ||
+          'https://images.unsplash.com/photo-1589829545856-d10d557cf95f',
         status: 'APPROVED',
         riskScore: randomRisk,
         rentToIncomeRatio: estimatedRentToIncome,
@@ -78,7 +89,9 @@ export class TenantScreeningService {
   }
 
   async updateScreeningStatus(id: string, status: 'APPROVED' | 'REJECTED') {
-    const screening = await this.prisma.tenantScreening.findUnique({ where: { id } });
+    const screening = await this.prisma.tenantScreening.findUnique({
+      where: { id },
+    });
     if (!screening) throw new NotFoundException('Screening record not found');
 
     return this.prisma.tenantScreening.update({

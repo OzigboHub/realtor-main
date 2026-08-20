@@ -26,21 +26,27 @@ export class AuditService {
     await this.prisma.auditLog.create({ data: { ...entry } });
   }
 
-  async findAll(filters: {
-    userId?: string;
-    role?: string;
-    module?: string;
-    action?: string;
-    status?: string;
-    from?: string;
-    to?: string;
-    entityType?: string;
-  }, page = 1, limit = 50) {
+  async findAll(
+    filters: {
+      userId?: string;
+      role?: string;
+      module?: string;
+      action?: string;
+      status?: string;
+      from?: string;
+      to?: string;
+      entityType?: string;
+    },
+    page = 1,
+    limit = 50,
+  ) {
     const where: any = {};
     if (filters.userId) where.performedBy = filters.userId;
     if (filters.role) where.userRole = filters.role;
-    if (filters.module) where.module = { contains: filters.module, mode: 'insensitive' };
-    if (filters.action) where.action = { contains: filters.action, mode: 'insensitive' };
+    if (filters.module)
+      where.module = { contains: filters.module, mode: 'insensitive' };
+    if (filters.action)
+      where.action = { contains: filters.action, mode: 'insensitive' };
     if (filters.status) where.status = filters.status;
     if (filters.entityType) where.entityType = filters.entityType;
     if (filters.from || filters.to) {

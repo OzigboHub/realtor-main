@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUnitDto } from './dto/create-unit.dto';
 import { Role } from '@prisma/client';
@@ -7,8 +11,15 @@ import { Role } from '@prisma/client';
 export class UnitsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createUnit(buildingId: string, userId: string, role: string, data: CreateUnitDto) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+  async createUnit(
+    buildingId: string,
+    userId: string,
+    role: string,
+    data: CreateUnitDto,
+  ) {
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
 
     if (role === Role.LANDLORD && building.landlordId !== userId) {
@@ -27,7 +38,9 @@ export class UnitsService {
   }
 
   async getUnitsByBuilding(buildingId: string, userId: string, role: string) {
-    const building = await this.prisma.building.findUnique({ where: { id: buildingId } });
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+    });
     if (!building) throw new NotFoundException('Building not found');
 
     if (role === Role.LANDLORD && building.landlordId !== userId) {
@@ -42,9 +55,11 @@ export class UnitsService {
       include: {
         leases: {
           where: { status: 'ACTIVE' },
-          include: { tenant: { select: { id: true, name: true, email: true } } }
-        }
-      }
+          include: {
+            tenant: { select: { id: true, name: true, email: true } },
+          },
+        },
+      },
     });
   }
 }

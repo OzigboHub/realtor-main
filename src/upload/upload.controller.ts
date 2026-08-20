@@ -1,8 +1,24 @@
-import { Controller, Post, Get, Query, UseInterceptors, UploadedFile, UploadedFiles, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Query,
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
+  UseGuards,
+} from '@nestjs/common';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { UploadService } from './upload.service';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
-import { ApiTags, ApiOperation, ApiConsumes, ApiBody, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiConsumes,
+  ApiBody,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 
 @ApiTags('Upload')
 @ApiBearerAuth()
@@ -66,13 +82,18 @@ export class UploadController {
       },
     },
   })
-  @ApiOperation({ summary: 'Upload a document file (PDF, ID slip, legal contract)' })
+  @ApiOperation({
+    summary: 'Upload a document file (PDF, ID slip, legal contract)',
+  })
   uploadDocument(@UploadedFile() file: any) {
     return this.uploadService.uploadDocument(file);
   }
 
   @Get('presigned-url')
-  @ApiOperation({ summary: 'Generate presigned authenticated download URL for private documents' })
+  @ApiOperation({
+    summary:
+      'Generate presigned authenticated download URL for private documents',
+  })
   @ApiQuery({ name: 'publicId', type: String, required: true })
   getPresignedUrl(@Query('publicId') publicId: string) {
     return this.uploadService.getPresignedUrl(publicId);
@@ -98,4 +119,3 @@ export class UploadController {
     return this.uploadService.uploadImage(file);
   }
 }
-

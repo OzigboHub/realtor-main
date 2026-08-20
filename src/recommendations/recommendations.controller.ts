@@ -5,7 +5,9 @@ import type { Request } from 'express';
 
 @Controller('recommendations')
 export class RecommendationsController {
-  constructor(private readonly recommendationsService: RecommendationsService) {}
+  constructor(
+    private readonly recommendationsService: RecommendationsService,
+  ) {}
 
   @Get('similar/:propertyId')
   async getSimilarProperties(@Param('propertyId') propertyId: string) {

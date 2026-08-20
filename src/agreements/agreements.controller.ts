@@ -45,10 +45,15 @@ export class AgreementsController {
   @Roles('LANDLORD', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({
     summary: 'List all agreements for a building - full history (FR-12.5)',
-    description: 'Returns ACTIVE, EXPIRED, and TERMINATED agreements, newest first.',
+    description:
+      'Returns ACTIVE, EXPIRED, and TERMINATED agreements, newest first.',
   })
   findAll(@Param('buildingId') buildingId: string, @CurrentUser() user: any) {
-    return this.agreementsService.findAllForBuilding(buildingId, user.userId, user.role);
+    return this.agreementsService.findAllForBuilding(
+      buildingId,
+      user.userId,
+      user.role,
+    );
   }
 
   // FR-12.3: Compliance / active view
@@ -56,10 +61,18 @@ export class AgreementsController {
   @Roles('LANDLORD', 'CARETAKER', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({
     summary: 'Get the current active agreement and compliance status (FR-12.3)',
-    description: 'Landlords and Caretakers can view the current agreement scope and terms.',
+    description:
+      'Landlords and Caretakers can view the current agreement scope and terms.',
   })
-  findActive(@Param('buildingId') buildingId: string, @CurrentUser() user: any) {
-    return this.agreementsService.findActive(buildingId, user.userId, user.role);
+  findActive(
+    @Param('buildingId') buildingId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.agreementsService.findActive(
+      buildingId,
+      user.userId,
+      user.role,
+    );
   }
 
   // FR-12.4: Renew / modify
@@ -83,7 +96,8 @@ export class AgreementsController {
   @Roles('LANDLORD', 'ADMIN', 'SUPER_ADMIN')
   @ApiOperation({
     summary: 'Terminate a management agreement (FR-12.4)',
-    description: 'Sets the agreement status to TERMINATED. Only ACTIVE agreements can be terminated.',
+    description:
+      'Sets the agreement status to TERMINATED. Only ACTIVE agreements can be terminated.',
   })
   terminate(
     @Param('buildingId') buildingId: string,

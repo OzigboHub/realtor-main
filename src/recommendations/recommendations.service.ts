@@ -65,7 +65,9 @@ export class RecommendationsService {
       if (srcCity && loc.includes(srcCity)) score += 2;
 
       // Amenity overlap
-      const overlap = (p.amenities ?? []).filter((a) => sourceAmenities.has(a)).length;
+      const overlap = (p.amenities ?? []).filter((a) =>
+        sourceAmenities.has(a),
+      ).length;
       score += Math.min(overlap, 3);
 
       return { property: p, score };

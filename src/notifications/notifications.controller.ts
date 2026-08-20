@@ -1,5 +1,18 @@
-import { Controller, Get, Patch, Param, Query, UseGuards, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { NotificationsService } from './notifications.service';
 
@@ -11,10 +24,16 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get all notifications for the current user (paginated)' })
+  @ApiOperation({
+    summary: 'Get all notifications for the current user (paginated)',
+  })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  findAll(@Request() req: any, @Query('page') page = 1, @Query('limit') limit = 20) {
+  findAll(
+    @Request() req: any,
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+  ) {
     return this.notificationsService.findAll(req.user.userId, +page, +limit);
   }
 

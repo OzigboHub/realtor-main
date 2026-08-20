@@ -54,7 +54,9 @@ export class PaymentsService {
   ) {
     const payment = await this.prisma.rentPayment.findUnique({
       where: { id: paymentId },
-      include: { lease: { include: { unit: { include: { building: true } } } } },
+      include: {
+        lease: { include: { unit: { include: { building: true } } } },
+      },
     });
 
     if (!payment) throw new NotFoundException('Payment not found');
@@ -96,7 +98,10 @@ export class PaymentsService {
   // PAYSTACK PAYMENT INTEGRATION
   // ==========================================
 
-  async initiatePayment(user: { id: string; email: string }, dto: InitiatePaymentDto) {
+  async initiatePayment(
+    user: { id: string; email: string },
+    dto: InitiatePaymentDto,
+  ) {
     const lease = await this.prisma.lease.findUnique({
       where: { id: dto.leaseId },
       include: { tenant: true },
@@ -104,7 +109,9 @@ export class PaymentsService {
 
     if (!lease) throw new NotFoundException('Lease agreement not found.');
     if (lease.tenantId !== user.id) {
-      throw new ForbiddenException('You are not authorized to pay for this lease.');
+      throw new ForbiddenException(
+        'You are not authorized to pay for this lease.',
+      );
     }
 
     const reference = `RENT_${lease.id.substring(0, 8)}_${Date.now()}`;
@@ -120,10 +127,14 @@ export class PaymentsService {
       },
     });
 
-    const paystackSecret = this.configService.get<string>('PAYSTACK_SECRET_KEY');
+    const paystackSecret = this.configService.get<string>(
+      'PAYSTACK_SECRET_KEY',
+    );
 
     if (!paystackSecret) {
-      this.logger.warn('PAYSTACK_SECRET_KEY is missing. Operating in Sandbox mode.');
+      this.logger.warn(
+        'PAYSTACK_SECRET_KEY is missing. Operating in Sandbox mode.',
+      );
       return {
         success: true,
         reference,
@@ -136,28 +147,35 @@ export class PaymentsService {
     }
 
     try {
-      const response = await fetch('https://api.paystack.co/transaction/initialize', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${paystackSecret}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: user.email,
-          amount: amountInKobo,
-          reference,
-          callback_url: dto.callbackUrl || 'http://localhost:3001/dashboard/tenant/payments',
-          metadata: {
-            rentPaymentId: rentPayment.id,
-            leaseId: lease.id,
-            tenantId: user.id,
+      const response = await fetch(
+        'https://api.paystack.co/transaction/initialize',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${paystackSecret}`,
+            'Content-Type': 'application/json',
           },
-        }),
-      });
+          body: JSON.stringify({
+            email: user.email,
+            amount: amountInKobo,
+            reference,
+            callback_url:
+              dto.callbackUrl ||
+              'http://localhost:3001/dashboard/tenant/payments',
+            metadata: {
+              rentPaymentId: rentPayment.id,
+              leaseId: lease.id,
+              tenantId: user.id,
+            },
+          }),
+        },
+      );
 
       const resData = await response.json();
       if (!resData.status) {
-        throw new BadRequestException(`Paystack Initialization Error: ${resData.message}`);
+        throw new BadRequestException(
+          `Paystack Initialization Error: ${resData.message}`,
+        );
       }
 
       return {
@@ -170,16 +188,22 @@ export class PaymentsService {
       };
     } catch (err: any) {
       this.logger.error(`Paystack initialization failed: ${err.message}`);
-      throw new BadRequestException(`Paystack initialization failed: ${err.message}`);
+      throw new BadRequestException(
+        `Paystack initialization failed: ${err.message}`,
+      );
     }
   }
 
   async verifyPayment(reference: string) {
-    const paystackSecret = this.configService.get<string>('PAYSTACK_SECRET_KEY');
+    const paystackSecret = this.configService.get<string>(
+      'PAYSTACK_SECRET_KEY',
+    );
 
     if (!paystackSecret) {
       // Sandbox mode verification
-      this.logger.log(`Verifying payment reference ${reference} in sandbox mode.`);
+      this.logger.log(
+        `Verifying payment reference ${reference} in sandbox mode.`,
+      );
       const payment = await this.prisma.rentPayment.findFirst({
         where: { status: 'PENDING' },
         orderBy: { createdAt: 'desc' },
@@ -196,12 +220,15 @@ export class PaymentsService {
     }
 
     try {
-      const response = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${paystackSecret}`,
+      const response = await fetch(
+        `https://api.paystack.co/transaction/verify/${reference}`,
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${paystackSecret}`,
+          },
         },
-      });
+      );
 
       const resData = await response.json();
       if (!resData.status || resData.data.status !== 'success') {
@@ -220,12 +247,16 @@ export class PaymentsService {
       return { success: true, status: 'PAID' };
     } catch (err: any) {
       this.logger.error(`Paystack verification failed: ${err.message}`);
-      throw new BadRequestException(`Paystack verification failed: ${err.message}`);
+      throw new BadRequestException(
+        `Paystack verification failed: ${err.message}`,
+      );
     }
   }
 
   async handleWebhook(rawBody: string | Buffer, signature: string) {
-    const paystackSecret = this.configService.get<string>('PAYSTACK_SECRET_KEY');
+    const paystackSecret = this.configService.get<string>(
+      'PAYSTACK_SECRET_KEY',
+    );
 
     if (paystackSecret && signature) {
       const computedHash = crypto
@@ -239,7 +270,10 @@ export class PaymentsService {
       }
     }
 
-    const payload = typeof rawBody === 'string' ? JSON.parse(rawBody) : JSON.parse(rawBody.toString('utf-8'));
+    const payload =
+      typeof rawBody === 'string'
+        ? JSON.parse(rawBody)
+        : JSON.parse(rawBody.toString('utf-8'));
     const eventId = payload.data?.id ? `paystack:evt:${payload.data.id}` : null;
 
     if (eventId) {
@@ -260,7 +294,9 @@ export class PaymentsService {
           where: { id: rentPaymentId },
           data: { status: 'PAID', paidDate: new Date() },
         });
-        this.logger.log(`Rent payment ${rentPaymentId} successfully updated to PAID via Webhook.`);
+        this.logger.log(
+          `Rent payment ${rentPaymentId} successfully updated to PAID via Webhook.`,
+        );
       }
     }
 

@@ -269,7 +269,12 @@ export class AiSubscriptionService {
     planTier: PlanTier,
     gateway: PaymentGateway,
   ) {
-    if (process.env.NODE_ENV === 'test' || reference.startsWith('E2E-REF') || reference.startsWith('STRIPE-MOCK') || reference.startsWith('TEST-REF')) {
+    if (
+      process.env.NODE_ENV === 'test' ||
+      reference.startsWith('E2E-REF') ||
+      reference.startsWith('STRIPE-MOCK') ||
+      reference.startsWith('TEST-REF')
+    ) {
       return this.fulfillSubscription(userId, planTier, gateway, reference);
     }
 

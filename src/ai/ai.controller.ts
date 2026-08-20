@@ -10,7 +10,12 @@ import { IsString, IsNotEmpty, IsOptional, IsObject } from 'class-validator';
 import { AiService, ListingContext } from './ai.service';
 import { JwtAuthGuard } from 'src/auth/jwt.guard';
 import { AiCreditGuard } from './guards/ai-credit.guard';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiProperty } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiProperty,
+} from '@nestjs/swagger';
 
 export class AskListingAssistantDto {
   @ApiProperty({ example: 'Write a description for a 3-bedroom duplex' })
@@ -32,7 +37,9 @@ export class AskPropertyAssistantDto {
 }
 
 export class VirtualStagingDto {
-  @ApiProperty({ example: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c' })
+  @ApiProperty({
+    example: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c',
+  })
   @IsString()
   @IsNotEmpty()
   imageUrl: string;
@@ -53,17 +60,24 @@ export class AiController {
   @Post('listing-assistant')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Ask the AI listing assistant a question about your property listing (Deducts 1 AI Credit)',
+    summary:
+      'Ask the AI listing assistant a question about your property listing (Deducts 1 AI Credit)',
   })
-  async askListing(@Body() dto: AskListingAssistantDto): Promise<{ reply: string }> {
-    const reply = await this.aiService.askListingAssistant(dto.prompt, dto.context || {});
+  async askListing(
+    @Body() dto: AskListingAssistantDto,
+  ): Promise<{ reply: string }> {
+    const reply = await this.aiService.askListingAssistant(
+      dto.prompt,
+      dto.context || {},
+    );
     return { reply };
   }
 
   @Post('property-assistant')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Ask the AI property assistant to search and filter real properties in natural language (Deducts 1 AI Credit)',
+    summary:
+      'Ask the AI property assistant to search and filter real properties in natural language (Deducts 1 AI Credit)',
   })
   async askProperty(@Body() dto: AskPropertyAssistantDto) {
     return this.aiService.askPropertyAssistant(dto.prompt);

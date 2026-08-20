@@ -1,4 +1,10 @@
-import { IsNotEmpty, IsString, IsEnum, IsOptional, IsArray } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
 import { DisputeCategory } from '@prisma/client';
 
 export class CreateDisputeDto {

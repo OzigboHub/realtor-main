@@ -12,7 +12,14 @@ import {
   ArrayMinSize,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { PropertyCategory, ListingPurpose, HouseType, ApartmentType, CommercialType, LandType } from '@prisma/client';
+import {
+  PropertyCategory,
+  ListingPurpose,
+  HouseType,
+  ApartmentType,
+  CommercialType,
+  LandType,
+} from '@prisma/client';
 
 export class CreatePropertyDto {
   @ApiProperty()
@@ -21,7 +28,9 @@ export class CreatePropertyDto {
   title: string;
 
   @ApiProperty()
-  @IsNotEmpty({ message: 'Description is required. Please enter a property description.' })
+  @IsNotEmpty({
+    message: 'Description is required. Please enter a property description.',
+  })
   @IsString({ message: 'Description must be a text string.' })
   description: string;
 
@@ -32,22 +41,35 @@ export class CreatePropertyDto {
 
   @ApiProperty({ required: false, enum: ['MONTHLY', 'YEARLY'] })
   @IsOptional()
-  @IsEnum(['MONTHLY', 'YEARLY'], { message: 'Rent frequency must be MONTHLY or YEARLY.' })
+  @IsEnum(['MONTHLY', 'YEARLY'], {
+    message: 'Rent frequency must be MONTHLY or YEARLY.',
+  })
   rentFrequency?: 'MONTHLY' | 'YEARLY';
 
-  @ApiProperty({ description: 'Property type name, e.g. Duplex, Studio, Penthouse, Office' })
-  @IsNotEmpty({ message: 'Property type is required. Please select or enter a property type (e.g. Duplex, Studio, Penthouse, Office).' })
+  @ApiProperty({
+    description: 'Property type name, e.g. Duplex, Studio, Penthouse, Office',
+  })
+  @IsNotEmpty({
+    message:
+      'Property type is required. Please select or enter a property type (e.g. Duplex, Studio, Penthouse, Office).',
+  })
   @IsString({ message: 'Property type must be a text string.' })
   type: string;
 
   @ApiProperty()
-  @IsNotEmpty({ message: 'Location is required. Please enter the property location or address.' })
+  @IsNotEmpty({
+    message:
+      'Location is required. Please enter the property location or address.',
+  })
   @IsString({ message: 'Location must be a text string.' })
   location: string;
 
   @ApiProperty({ type: [String] })
   @IsArray({ message: 'Image URLs must be an array of image links.' })
-  @ArrayMinSize(1, { message: 'Image upload is required. You must provide at least one property image.' })
+  @ArrayMinSize(1, {
+    message:
+      'Image upload is required. You must provide at least one property image.',
+  })
   @IsUrl({}, { each: true, message: 'Each image URL must be a valid link.' })
   imageUrls: string[];
 
@@ -79,12 +101,16 @@ export class CreatePropertyDto {
 
   @ApiProperty({ required: false, enum: ['RENT', 'SALE'] })
   @IsOptional()
-  @IsEnum(['RENT', 'SALE'], { message: 'Listing type must be either RENT or SALE.' })
+  @IsEnum(['RENT', 'SALE'], {
+    message: 'Listing type must be either RENT or SALE.',
+  })
   listingType?: string;
 
   @ApiProperty({ required: false, enum: ['DRAFT', 'PUBLISHED'] })
   @IsOptional()
-  @IsEnum(['DRAFT', 'PUBLISHED'], { message: 'Status must be either DRAFT or PUBLISHED.' })
+  @IsEnum(['DRAFT', 'PUBLISHED'], {
+    message: 'Status must be either DRAFT or PUBLISHED.',
+  })
   status?: string;
 
   @ApiProperty({ required: false, type: [String] })
@@ -94,8 +120,13 @@ export class CreatePropertyDto {
   amenities?: string[];
 
   @ApiProperty({ enum: PropertyCategory })
-  @IsNotEmpty({ message: 'Category is required (HOUSE, APARTMENT, LAND, COMMERCIAL).' })
-  @IsEnum(PropertyCategory, { message: 'Category must be one of the following: HOUSE, APARTMENT, LAND, COMMERCIAL.' })
+  @IsNotEmpty({
+    message: 'Category is required (HOUSE, APARTMENT, LAND, COMMERCIAL).',
+  })
+  @IsEnum(PropertyCategory, {
+    message:
+      'Category must be one of the following: HOUSE, APARTMENT, LAND, COMMERCIAL.',
+  })
   category: PropertyCategory;
 
   @ApiProperty({ enum: ListingPurpose })
@@ -104,27 +135,39 @@ export class CreatePropertyDto {
   purpose: ListingPurpose;
 
   @ApiProperty({ enum: HouseType, required: false })
-  @ValidateIf(o => o.category === 'HOUSE')
+  @ValidateIf((o) => o.category === 'HOUSE')
   @IsOptional()
-  @IsEnum(HouseType, { message: 'House type must be one of: DETACHED, SEMI_DETACHED, TERRACED, DUPLEX, MAISONETTE, BUNGALOW, COTTAGE.' })
+  @IsEnum(HouseType, {
+    message:
+      'House type must be one of: DETACHED, SEMI_DETACHED, TERRACED, DUPLEX, MAISONETTE, BUNGALOW, COTTAGE.',
+  })
   houseType?: HouseType;
 
   @ApiProperty({ enum: ApartmentType, required: false })
-  @ValidateIf(o => o.category === 'APARTMENT')
+  @ValidateIf((o) => o.category === 'APARTMENT')
   @IsOptional()
-  @IsEnum(ApartmentType, { message: 'Apartment type must be one of: STUDIO, SELF_CONTAINED, MINI_FLAT, ONE_BEDROOM, TWO_BEDROOM, THREE_BEDROOM, PENTHOUSE.' })
+  @IsEnum(ApartmentType, {
+    message:
+      'Apartment type must be one of: STUDIO, SELF_CONTAINED, MINI_FLAT, ONE_BEDROOM, TWO_BEDROOM, THREE_BEDROOM, PENTHOUSE.',
+  })
   apartmentType?: ApartmentType;
 
   @ApiProperty({ enum: CommercialType, required: false })
-  @ValidateIf(o => o.category === 'COMMERCIAL')
+  @ValidateIf((o) => o.category === 'COMMERCIAL')
   @IsOptional()
-  @IsEnum(CommercialType, { message: 'Commercial type must be one of: OFFICE, SHOP, WAREHOUSE, PLAZA, HOTEL, FACTORY, EVENT_CENTER, FILLING_STATION.' })
+  @IsEnum(CommercialType, {
+    message:
+      'Commercial type must be one of: OFFICE, SHOP, WAREHOUSE, PLAZA, HOTEL, FACTORY, EVENT_CENTER, FILLING_STATION.',
+  })
   commercialType?: CommercialType;
 
   @ApiProperty({ enum: LandType, required: false })
-  @ValidateIf(o => o.category === 'LAND')
+  @ValidateIf((o) => o.category === 'LAND')
   @IsOptional()
-  @IsEnum(LandType, { message: 'Land type must be one of: RESIDENTIAL, COMMERCIAL, INDUSTRIAL, AGRICULTURAL, MIXED_USE.' })
+  @IsEnum(LandType, {
+    message:
+      'Land type must be one of: RESIDENTIAL, COMMERCIAL, INDUSTRIAL, AGRICULTURAL, MIXED_USE.',
+  })
   landType?: LandType;
 
   @ApiProperty({ required: false, type: [String] })

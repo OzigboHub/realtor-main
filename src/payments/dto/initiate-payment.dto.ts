@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 
 export class InitiatePaymentDto {
   @ApiProperty({ description: 'Lease ID for rent payment' })
@@ -12,7 +18,10 @@ export class InitiatePaymentDto {
   @IsNotEmpty()
   amount: number;
 
-  @ApiProperty({ description: 'Callback URL after successful payment', required: false })
+  @ApiProperty({
+    description: 'Callback URL after successful payment',
+    required: false,
+  })
   @IsString()
   @IsOptional()
   callbackUrl?: string;

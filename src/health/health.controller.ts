@@ -30,7 +30,9 @@ export class HealthController {
   @Get()
   @Public()
   @HealthCheck()
-  @ApiOperation({ summary: 'System health check for downtime or compromise (public)' })
+  @ApiOperation({
+    summary: 'System health check for downtime or compromise (public)',
+  })
   async check() {
     return this.health.check([
       // 1. Database Health

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateUsersDto } from 'src/auth/dto/update-auth.dto';
 import { Status } from '@prisma/client';
@@ -22,7 +26,15 @@ export class UsersService {
 
   async getAllUsers() {
     return this.prisma.user.findMany({
-      select: { id: true, name: true, email: true, role: true, isBlocked: true, status: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isBlocked: true,
+        status: true,
+        createdAt: true,
+      },
     });
   }
 
@@ -63,12 +75,18 @@ export class UsersService {
   async inviteSupportAgent(adminId: string, email: string, name?: string) {
     const admin = await this.prisma.user.findUnique({ where: { id: adminId } });
     if (!admin || (admin.role !== 'ADMIN' && admin.role !== 'SUPER_ADMIN')) {
-      throw new ForbiddenException('Only System Admins and Admins can invite support staff');
+      throw new ForbiddenException(
+        'Only System Admins and Admins can invite support staff',
+      );
     }
 
-    const existingUser = await this.prisma.user.findUnique({ where: { email } });
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
     if (existingUser && existingUser.role === 'SUPPORT_AGENT') {
-      throw new ForbiddenException('User is already registered as a Support Agent');
+      throw new ForbiddenException(
+        'User is already registered as a Support Agent',
+      );
     }
 
     const token = `SUP-INV-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -101,14 +119,27 @@ export class UsersService {
       include: { invitedBy: { select: { name: true, email: true } } },
     });
 
-    if (!invite) throw new NotFoundException('Invalid or expired support invitation token');
-    if (invite.status !== 'PENDING') throw new ForbiddenException('This support invitation has already been accepted');
-    if (new Date() > invite.expiresAt) throw new ForbiddenException('This support invitation link has expired');
+    if (!invite)
+      throw new NotFoundException(
+        'Invalid or expired support invitation token',
+      );
+    if (invite.status !== 'PENDING')
+      throw new ForbiddenException(
+        'This support invitation has already been accepted',
+      );
+    if (new Date() > invite.expiresAt)
+      throw new ForbiddenException('This support invitation link has expired');
 
     return invite;
   }
 
-  async acceptSupportInvite(dto: { token: string; name: string; password: string; phone?: string; bio?: string }) {
+  async acceptSupportInvite(dto: {
+    token: string;
+    name: string;
+    password: string;
+    phone?: string;
+    bio?: string;
+  }) {
     const invite = await this.verifySupportInvite(dto.token);
 
     const bcrypt = require('bcryptjs');
@@ -132,15 +163,30 @@ export class UsersService {
     });
 
     return {
-      message: 'Support agent profile created successfully! You can now log in.',
-      user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
+      message:
+        'Support agent profile created successfully! You can now log in.',
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+      },
     };
   }
 
   async listSupportAgents() {
     const agents = await this.prisma.user.findMany({
       where: { role: 'SUPPORT_AGENT' },
-      select: { id: true, name: true, email: true, role: true, isBlocked: true, status: true, phone: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isBlocked: true,
+        status: true,
+        phone: true,
+        createdAt: true,
+      },
     });
 
     const invitations = await this.prisma.supportInvitation.findMany({

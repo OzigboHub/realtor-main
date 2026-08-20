@@ -20,7 +20,7 @@ export class UnitsController {
   createUnit(
     @Param('buildingId') buildingId: string,
     @CurrentUser() user: any,
-    @Body() data: CreateUnitDto
+    @Body() data: CreateUnitDto,
   ) {
     return this.unitsService.createUnit(buildingId, user.id, user.role, data);
   }
@@ -30,7 +30,7 @@ export class UnitsController {
   @ApiOperation({ summary: 'Get all units for a building' })
   getUnitsByBuilding(
     @Param('buildingId') buildingId: string,
-    @CurrentUser() user: any
+    @CurrentUser() user: any,
   ) {
     return this.unitsService.getUnitsByBuilding(buildingId, user.id, user.role);
   }

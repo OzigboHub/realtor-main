@@ -16,7 +16,9 @@ import { CreateMessageDto } from './dto/create-message.dto';
     origin: '*',
   },
 })
-export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class MessagesGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -56,10 +58,15 @@ export class MessagesGateway implements OnGatewayConnection, OnGatewayDisconnect
 
     try {
       // Save message via REST service
-      const message = await this.messagesService.create(senderId, createMessageDto);
+      const message = await this.messagesService.create(
+        senderId,
+        createMessageDto,
+      );
 
       // Emit to receiver if online
-      const receiverSocketId = this.connectedUsers.get(createMessageDto.receiverId);
+      const receiverSocketId = this.connectedUsers.get(
+        createMessageDto.receiverId,
+      );
       if (receiverSocketId) {
         this.server.to(receiverSocketId).emit('newMessage', message);
       }

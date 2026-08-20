@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateMaintenanceRequestDto } from './dto/create-maintenance-request.dto';
@@ -12,13 +16,19 @@ export class MaintenanceService {
     private readonly notifications: NotificationsService,
   ) {}
 
-  async createRequest(tenantId: string, data: CreateMaintenanceRequestDto & { imageUrl?: string }) {
+  async createRequest(
+    tenantId: string,
+    data: CreateMaintenanceRequestDto & { imageUrl?: string },
+  ) {
     const lease = await this.prisma.lease.findFirst({
       where: { unitId: data.unitId, tenantId, status: 'ACTIVE' },
       include: { unit: { include: { building: true } } },
     });
 
-    if (!lease) throw new ForbiddenException('You do not have an active lease for this unit');
+    if (!lease)
+      throw new ForbiddenException(
+        'You do not have an active lease for this unit',
+      );
 
     // Simulate AI Repair Cost Benchmark Calculation
     const estMin = Math.floor(Math.random() * (25000 - 10000) + 10000);
@@ -29,7 +39,9 @@ export class MaintenanceService {
         unitId: data.unitId,
         tenantId,
         description: data.description,
-        imageUrl: data.imageUrl || 'https://images.unsplash.com/photo-1581578731548-c64695cc6952',
+        imageUrl:
+          data.imageUrl ||
+          'https://images.unsplash.com/photo-1581578731548-c64695cc6952',
         estimatedCostMin: estMin,
         estimatedCostMax: estMax,
       },
@@ -74,7 +86,12 @@ export class MaintenanceService {
     });
   }
 
-  async assignContractor(requestId: string, userId: string, contractorName: string, contractorPhone: string) {
+  async assignContractor(
+    requestId: string,
+    userId: string,
+    contractorName: string,
+    contractorPhone: string,
+  ) {
     const request = await this.prisma.maintenanceRequest.findUnique({
       where: { id: requestId },
       include: { unit: { include: { building: true } } },
@@ -92,7 +109,11 @@ export class MaintenanceService {
     });
   }
 
-  async updateRequestStatus(requestId: string, userId: string, data: UpdateMaintenanceStatusDto) {
+  async updateRequestStatus(
+    requestId: string,
+    userId: string,
+    data: UpdateMaintenanceStatusDto,
+  ) {
     const request = await this.prisma.maintenanceRequest.findUnique({
       where: { id: requestId },
       include: { unit: { include: { building: true } } },
@@ -100,7 +121,10 @@ export class MaintenanceService {
 
     if (!request) throw new NotFoundException('Maintenance request not found');
 
-    if (request.unit.building.caretakerId !== userId && request.unit.building.landlordId !== userId) {
+    if (
+      request.unit.building.caretakerId !== userId &&
+      request.unit.building.landlordId !== userId
+    ) {
       throw new ForbiddenException('You do not manage this building');
     }
 

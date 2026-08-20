@@ -11,7 +11,12 @@ import * as bcrypt from 'bcryptjs';
 import * as crypto from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { Role, Status } from '@prisma/client';
-import { ForgotPasswordDto, LoginDto, RegisterUserDto, ResetPasswordDto } from './dto/create-auth.dto';
+import {
+  ForgotPasswordDto,
+  LoginDto,
+  RegisterUserDto,
+  ResetPasswordDto,
+} from './dto/create-auth.dto';
 import { GoogleProfile } from './google.strategy';
 import { NotificationsService } from '../notifications/notifications.service';
 import { MailService } from '../mail/mail.service';
@@ -53,7 +58,9 @@ export class AuthService {
 
     if (PROPERTY_REQUIRED_ROLES.includes(role)) {
       if (!dto.propertyId) {
-        throw new BadRequestException(`propertyId is required when registering as ${role}.`);
+        throw new BadRequestException(
+          `propertyId is required when registering as ${role}.`,
+        );
       }
 
       const property = await this.prisma.property.findUnique({
@@ -61,22 +68,36 @@ export class AuthService {
         include: { agent: true },
       });
 
-      if (!property) throw new NotFoundException(`Property '${dto.propertyId}' not found.`);
+      if (!property)
+        throw new NotFoundException(`Property '${dto.propertyId}' not found.`);
 
       const owner = property.agent;
-      if (!owner || (owner.role !== Role.LANDLORD && owner.role !== Role.SUPER_ADMIN && owner.role !== Role.ADMIN)) {
-        throw new BadRequestException('The selected property must belong to a registered LANDLORD.');
+      if (
+        !owner ||
+        (owner.role !== Role.LANDLORD &&
+          owner.role !== Role.SUPER_ADMIN &&
+          owner.role !== Role.ADMIN)
+      ) {
+        throw new BadRequestException(
+          'The selected property must belong to a registered LANDLORD.',
+        );
       }
       if (owner.status !== Status.APPROVED) {
-        throw new BadRequestException('The property LANDLORD has not been approved yet.');
+        throw new BadRequestException(
+          'The property LANDLORD has not been approved yet.',
+        );
       }
     }
 
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const existing = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (existing) throw new BadRequestException('Email already exists.');
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
-    const status = PENDING_ROLES.includes(role) ? Status.PENDING : Status.APPROVED;
+    const status = PENDING_ROLES.includes(role)
+      ? Status.PENDING
+      : Status.APPROVED;
 
     const user = await this.prisma.user.create({
       data: {
@@ -85,25 +106,41 @@ export class AuthService {
         password: hashedPassword,
         role,
         status,
+        phone: dto.phone,
+        bio: dto.bio,
+        profileImage: dto.profileImage || dto.avatar,
+        avatar: dto.avatar || dto.profileImage,
         ...(dto.propertyId ? { registrationPropertyId: dto.propertyId } : {}),
       },
     });
 
     const messageMap: Record<string, string> = {
-      [Role.USER]:      'User registered successfully.',
-      [Role.AGENT]:     'Agent registration submitted. Awaiting ADMIN approval.',
-      [Role.ADMIN]:     'Admin registration submitted. Awaiting SYSTEM_ADMIN approval.',
-      [Role.LANDLORD]:  'Landlord registration submitted. Awaiting ADMIN or SYSTEM_ADMIN approval.',
-      [Role.CARETAKER]: 'Caretaker registration submitted. Awaiting property Landlord approval.',
-      [Role.TENANT]:    'Tenant registration submitted. Awaiting property Landlord or Caretaker approval.',
+      [Role.USER]: 'User registered successfully.',
+      [Role.AGENT]: 'Agent registration submitted. Awaiting ADMIN approval.',
+      [Role.ADMIN]:
+        'Admin registration submitted. Awaiting SYSTEM_ADMIN approval.',
+      [Role.LANDLORD]:
+        'Landlord registration submitted. Awaiting ADMIN or SYSTEM_ADMIN approval.',
+      [Role.CARETAKER]:
+        'Caretaker registration submitted. Awaiting property Landlord approval.',
+      [Role.TENANT]:
+        'Tenant registration submitted. Awaiting property Landlord or Caretaker approval.',
     };
 
     // Trigger notifications
     if (status === Status.APPROVED) {
-      await this.notifications.create(user.id, 'WELCOME', `Welcome to Realtor, ${user.name}!`);
+      await this.notifications.create(
+        user.id,
+        'WELCOME',
+        `Welcome to Realtor, ${user.name}!`,
+      );
       this.mail.sendWelcome(user.email, user.name);
     } else {
-      await this.notifications.create(user.id, 'REGISTRATION_PENDING', messageMap[role]);
+      await this.notifications.create(
+        user.id,
+        'REGISTRATION_PENDING',
+        messageMap[role],
+      );
       this.mail.sendRegistrationPending(user.email, user.name, role);
     }
 
@@ -123,7 +160,15 @@ export class AuthService {
     return {
       message: messageMap[role] ?? 'Registration successful.',
       pending: status === Status.PENDING,
-      user: { id: user.id, email: user.email, role: user.role, status: user.status },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+        profileImage: user.profileImage || user.avatar,
+        avatar: user.avatar || user.profileImage,
+      },
     };
   }
 
@@ -131,51 +176,120 @@ export class AuthService {
   // LOGIN
   // ==============================
   async login(dto: LoginDto, ipAddress?: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
 
     if (!user) {
-      await this.audit.log({ action: 'LOGIN_FAILED', module: 'AUTH', ipAddress, status: 'FAILURE', failReason: 'User not found' });
+      await this.audit.log({
+        action: 'LOGIN_FAILED',
+        module: 'AUTH',
+        ipAddress,
+        status: 'FAILURE',
+        failReason: 'User not found',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     if (user.isBlocked) {
-      await this.audit.log({ action: 'LOGIN_BLOCKED', module: 'AUTH', entityId: user.id, performedBy: user.id, userRole: user.role, ipAddress, status: 'FAILURE', failReason: 'Account blocked' });
+      await this.audit.log({
+        action: 'LOGIN_BLOCKED',
+        module: 'AUTH',
+        entityId: user.id,
+        performedBy: user.id,
+        userRole: user.role,
+        ipAddress,
+        status: 'FAILURE',
+        failReason: 'Account blocked',
+      });
       throw new ForbiddenException('Your account has been blocked.');
     }
 
     if (PENDING_ROLES.includes(user.role) && user.status === Status.PENDING) {
-      await this.audit.log({ action: 'LOGIN_PENDING', module: 'AUTH', entityId: user.id, performedBy: user.id, userRole: user.role, ipAddress, status: 'FAILURE', failReason: 'Account pending approval' });
-      throw new ForbiddenException(`Your ${user.role} account is pending approval.`);
+      await this.audit.log({
+        action: 'LOGIN_PENDING',
+        module: 'AUTH',
+        entityId: user.id,
+        performedBy: user.id,
+        userRole: user.role,
+        ipAddress,
+        status: 'FAILURE',
+        failReason: 'Account pending approval',
+      });
+      throw new ForbiddenException(
+        `Your ${user.role} account is pending approval.`,
+      );
     }
 
     if (user.status === Status.REJECTED) {
-      await this.audit.log({ action: 'LOGIN_REJECTED', module: 'AUTH', entityId: user.id, performedBy: user.id, userRole: user.role, ipAddress, status: 'FAILURE', failReason: 'Account registration rejected' });
-      throw new ForbiddenException('Your account registration request was rejected.');
+      await this.audit.log({
+        action: 'LOGIN_REJECTED',
+        module: 'AUTH',
+        entityId: user.id,
+        performedBy: user.id,
+        userRole: user.role,
+        ipAddress,
+        status: 'FAILURE',
+        failReason: 'Account registration rejected',
+      });
+      throw new ForbiddenException(
+        'Your account registration request was rejected.',
+      );
     }
 
     const isMatch = await bcrypt.compare(dto.password, user.password);
     if (!isMatch) {
-      await this.audit.log({ action: 'LOGIN_FAILED', module: 'AUTH', entityId: user.id, performedBy: user.id, userRole: user.role, ipAddress, status: 'FAILURE', failReason: 'Wrong password' });
+      await this.audit.log({
+        action: 'LOGIN_FAILED',
+        module: 'AUTH',
+        entityId: user.id,
+        performedBy: user.id,
+        userRole: user.role,
+        ipAddress,
+        status: 'FAILURE',
+        failReason: 'Wrong password',
+      });
       throw new UnauthorizedException('Invalid credentials');
     }
 
     const payload = { sub: user.id, role: user.role };
     const token = await this.jwtService.signAsync(payload);
 
-    await this.audit.log({ action: 'LOGIN', module: 'AUTH', entityId: user.id, performedBy: user.id, userRole: user.role, ipAddress, status: 'SUCCESS' });
+    await this.audit.log({
+      action: 'LOGIN',
+      module: 'AUTH',
+      entityId: user.id,
+      performedBy: user.id,
+      userRole: user.role,
+      ipAddress,
+      status: 'SUCCESS',
+    });
 
     return {
       message: 'Login successful',
       access_token: token,
-      user: { id: user.id, email: user.email, role: user.role },
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profileImage: user.profileImage || user.avatar,
+        avatar: user.avatar || user.profileImage,
+      },
     };
   }
 
   // ==============================
   // APPROVE USER (full matrix)
   // ==============================
-  async approveUser(targetId: string, callerId: string, callerRole: Role, ipAddress?: string) {
-    if (targetId === callerId) throw new ForbiddenException('You cannot approve yourself.');
+  async approveUser(
+    targetId: string,
+    callerId: string,
+    callerRole: Role,
+    ipAddress?: string,
+  ) {
+    if (targetId === callerId)
+      throw new ForbiddenException('You cannot approve yourself.');
 
     const target = await this.prisma.user.findUnique({
       where: { id: targetId },
@@ -185,83 +299,182 @@ export class AuthService {
     });
 
     if (!target) throw new NotFoundException('User not found.');
-    if (target.status === Status.APPROVED) throw new BadRequestException('User is already approved.');
+    if (target.status === Status.APPROVED)
+      throw new BadRequestException('User is already approved.');
 
     const allowed = await this.canApprove(target, callerId, callerRole);
     if (!allowed) {
-      await this.audit.log({ action: 'APPROVE_DENIED', module: 'AUTH', entityType: 'User', entityId: targetId, performedBy: callerId, userRole: callerRole, ipAddress, status: 'FAILURE', failReason: `${callerRole} cannot approve ${target.role}` });
-      throw new ForbiddenException(`A ${callerRole} is not permitted to approve a ${target.role}.`);
+      await this.audit.log({
+        action: 'APPROVE_DENIED',
+        module: 'AUTH',
+        entityType: 'User',
+        entityId: targetId,
+        performedBy: callerId,
+        userRole: callerRole,
+        ipAddress,
+        status: 'FAILURE',
+        failReason: `${callerRole} cannot approve ${target.role}`,
+      });
+      throw new ForbiddenException(
+        `A ${callerRole} is not permitted to approve a ${target.role}.`,
+      );
     }
 
-    const updated = await this.prisma.user.update({ where: { id: targetId }, data: { status: Status.APPROVED } });
+    const updated = await this.prisma.user.update({
+      where: { id: targetId },
+      data: { status: Status.APPROVED },
+    });
 
     // Trigger notifications
-    await this.notifications.create(targetId, 'ACCOUNT_APPROVED', `Your ${target.role} account has been approved. You can now log in.`);
+    await this.notifications.create(
+      targetId,
+      'ACCOUNT_APPROVED',
+      `Your ${target.role} account has been approved. You can now log in.`,
+    );
     this.mail.sendApprovalNotification(target.email, target.name, target.role);
 
-    await this.audit.log({ action: 'APPROVE_USER', module: 'AUTH', entityType: 'User', entityId: targetId, performedBy: callerId, userRole: callerRole, ipAddress, prevValue: { status: 'PENDING' }, newValue: { status: 'APPROVED' }, status: 'SUCCESS' });
+    await this.audit.log({
+      action: 'APPROVE_USER',
+      module: 'AUTH',
+      entityType: 'User',
+      entityId: targetId,
+      performedBy: callerId,
+      userRole: callerRole,
+      ipAddress,
+      prevValue: { status: 'PENDING' },
+      newValue: { status: 'APPROVED' },
+      status: 'SUCCESS',
+    });
 
     return {
       message: `${target.role} account approved successfully.`,
-      user: { id: updated.id, email: updated.email, role: updated.role, status: updated.status },
+      user: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        status: updated.status,
+      },
     };
   }
 
-  private async canApprove(target: any, callerId: string, callerRole: Role): Promise<boolean> {
+  private async canApprove(
+    target: any,
+    callerId: string,
+    callerRole: Role,
+  ): Promise<boolean> {
     if (callerRole === Role.SUPER_ADMIN) return true;
     switch (target.role) {
-      case Role.USER: return false;
-      case Role.ADMIN: return false;
+      case Role.USER:
+        return false;
+      case Role.ADMIN:
+        return false;
       case Role.LANDLORD:
-      case Role.AGENT: return callerRole === Role.ADMIN;
+      case Role.AGENT:
+        return callerRole === Role.ADMIN;
       case Role.CARETAKER:
         if (callerRole === Role.ADMIN) return true;
         if (!target.registrationProperty) return false;
-        return callerRole === Role.LANDLORD && target.registrationProperty.agentId === callerId;
+        return (
+          callerRole === Role.LANDLORD &&
+          target.registrationProperty.agentId === callerId
+        );
       case Role.TENANT:
         if (callerRole === Role.ADMIN) return true;
         if (!target.registrationProperty) return false;
-        if (callerRole === Role.LANDLORD) return target.registrationProperty.agentId === callerId;
+        if (callerRole === Role.LANDLORD)
+          return target.registrationProperty.agentId === callerId;
         if (callerRole === Role.CARETAKER) {
-          const building = await this.prisma.building.findFirst({ where: { caretakerId: callerId } });
+          const building = await this.prisma.building.findFirst({
+            where: { caretakerId: callerId },
+          });
           return !!building;
         }
         return false;
-      default: return false;
+      default:
+        return false;
     }
   }
 
   // ==============================
   // REJECT USER
   // ==============================
-  async rejectUser(targetId: string, callerId?: string, callerRole?: string, ipAddress?: string) {
-    const target = await this.prisma.user.findUnique({ where: { id: targetId } });
+  async rejectUser(
+    targetId: string,
+    callerId?: string,
+    callerRole?: string,
+    ipAddress?: string,
+  ) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetId },
+    });
     if (!target) throw new NotFoundException('User not found.');
 
-    const updated = await this.prisma.user.update({ where: { id: targetId }, data: { status: Status.REJECTED } });
+    const updated = await this.prisma.user.update({
+      where: { id: targetId },
+      data: { status: Status.REJECTED },
+    });
 
-    await this.notifications.create(targetId, 'ACCOUNT_REJECTED', `Your ${target.role} registration was not approved. Please contact support.`);
+    await this.notifications.create(
+      targetId,
+      'ACCOUNT_REJECTED',
+      `Your ${target.role} registration was not approved. Please contact support.`,
+    );
     this.mail.sendRejectionNotification(target.email, target.name, target.role);
 
-    await this.audit.log({ action: 'REJECT_USER', module: 'AUTH', entityType: 'User', entityId: targetId, performedBy: callerId, userRole: callerRole, ipAddress, prevValue: { status: target.status }, newValue: { status: 'REJECTED' }, status: 'SUCCESS' });
+    await this.audit.log({
+      action: 'REJECT_USER',
+      module: 'AUTH',
+      entityType: 'User',
+      entityId: targetId,
+      performedBy: callerId,
+      userRole: callerRole,
+      ipAddress,
+      prevValue: { status: target.status },
+      newValue: { status: 'REJECTED' },
+      status: 'SUCCESS',
+    });
 
     return {
       message: `${target.role} account rejected.`,
-      user: { id: updated.id, email: updated.email, role: updated.role, status: updated.status },
+      user: {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role,
+        status: updated.status,
+      },
     };
   }
 
   // ==============================
   // BLOCK / UNBLOCK USER
   // ==============================
-  async blockUser(id: string, block: boolean, callerId?: string, callerRole?: string) {
-    const updated = await this.prisma.user.update({ where: { id }, data: { isBlocked: block } });
+  async blockUser(
+    id: string,
+    block: boolean,
+    callerId?: string,
+    callerRole?: string,
+  ) {
+    const updated = await this.prisma.user.update({
+      where: { id },
+      data: { isBlocked: block },
+    });
     if (block) {
       await this.redis.sadd('bl:users', id);
     } else {
       await this.redis.srem('bl:users', id);
     }
-    await this.audit.log({ action: block ? 'BLOCK_USER' : 'UNBLOCK_USER', module: 'AUTH', entityType: 'User', entityId: id, performedBy: callerId, userRole: callerRole, newValue: { isBlocked: block }, status: 'SUCCESS' });
+    await this.audit.log({
+      action: block ? 'BLOCK_USER' : 'UNBLOCK_USER',
+      module: 'AUTH',
+      entityType: 'User',
+      entityId: id,
+      performedBy: callerId,
+      userRole: callerRole,
+      newValue: { isBlocked: block },
+      status: 'SUCCESS',
+    });
     return updated;
   }
 
@@ -269,7 +482,9 @@ export class AuthService {
   // FORGOT PASSWORD
   // ==============================
   async forgotPassword(dto: ForgotPasswordDto, ipAddress?: string) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
 
     if (!user) {
       throw new NotFoundException('No account found with that email address.');
@@ -282,7 +497,10 @@ export class AuthService {
     // Generate a secure random token (64 hex chars)
     const rawToken = crypto.randomBytes(32).toString('hex');
     // Store hashed version so raw token in email cannot be used directly from DB
-    const hashedToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
     const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
     await this.prisma.user.update({
@@ -314,7 +532,10 @@ export class AuthService {
   // ==============================
   async resetPassword(dto: ResetPasswordDto, ipAddress?: string) {
     // Hash the incoming token to compare against stored hash
-    const hashedToken = crypto.createHash('sha256').update(dto.token).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(dto.token)
+      .digest('hex');
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -324,7 +545,9 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('Password reset token is invalid or has expired.');
+      throw new BadRequestException(
+        'Password reset token is invalid or has expired.',
+      );
     }
 
     const hashedPassword = await bcrypt.hash(dto.newPassword, 10);
@@ -356,7 +579,10 @@ export class AuthService {
     });
 
     this.logger.log(`Password reset successfully for ${user.email}`);
-    return { message: 'Password reset successfully. You can now log in with your new password.' };
+    return {
+      message:
+        'Password reset successfully. You can now log in with your new password.',
+    };
   }
 
   // ==============================
@@ -387,14 +613,19 @@ export class AuthService {
             avatar: existingByEmail.avatar ?? profile.avatar,
           },
         });
-        this.logger.log(`Linked Google account to existing user: ${user.email}`);
+        this.logger.log(
+          `Linked Google account to existing user: ${user.email}`,
+        );
       }
     }
 
     // 3. Create brand-new user from Google profile
     if (!user) {
       // Generate a random secure password — user cannot use it (no email/password login path exists for pure Google accounts)
-      const randomPassword = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+      const randomPassword = await bcrypt.hash(
+        crypto.randomBytes(32).toString('hex'),
+        10,
+      );
 
       user = await this.prisma.user.create({
         data: {
@@ -415,7 +646,9 @@ export class AuthService {
     }
 
     if (user.isBlocked) {
-      throw new ForbiddenException('Your account has been blocked. Contact support.');
+      throw new ForbiddenException(
+        'Your account has been blocked. Contact support.',
+      );
     }
 
     // Sign JWT — same shape as regular login

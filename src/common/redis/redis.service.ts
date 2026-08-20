@@ -1,10 +1,18 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  private memoryStore = new Map<string, { value: string; expiresAt?: number }>();
+  private memoryStore = new Map<
+    string,
+    { value: string; expiresAt?: number }
+  >();
   private memorySets = new Map<string, Set<string>>();
   private isRedisConnected = false;
 
@@ -15,10 +23,14 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     const redisUrl = this.configService.get<string>('REDIS_URL');
 
     if (redisHost || redisUrl) {
-      this.logger.log(`Redis configuration detected (${redisHost || redisUrl}). Initializing connection...`);
+      this.logger.log(
+        `Redis configuration detected (${redisHost || redisUrl}). Initializing connection...`,
+      );
       this.isRedisConnected = true;
     } else {
-      this.logger.log('No REDIS_HOST/REDIS_URL configured. Falling back to high-performance in-memory cache store.');
+      this.logger.log(
+        'No REDIS_HOST/REDIS_URL configured. Falling back to high-performance in-memory cache store.',
+      );
     }
   }
 

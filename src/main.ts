@@ -22,11 +22,14 @@ async function bootstrap() {
     }),
   );
 
-
   // CORS — allow local development frontend origins
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      if (
+        !origin ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1')
+      ) {
         callback(null, true);
       } else {
         callback(null, true);
@@ -39,7 +42,13 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   // Global pipes
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   // Global exception filter
   app.useGlobalFilters(new GlobalExceptionFilter());

@@ -23,7 +23,9 @@ export class AnalyticsController {
 
   @Get('landlord/ledger')
   @Roles(Role.LANDLORD, Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Get financial ledger analytics for landlord portfolio' })
+  @ApiOperation({
+    summary: 'Get financial ledger analytics for landlord portfolio',
+  })
   async getLandlordLedger(@CurrentUser() user: any) {
     const userId = user.id || user.userId || user.sub;
     return this.analyticsService.getLandlordLedger(userId);

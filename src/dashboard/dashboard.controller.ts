@@ -36,7 +36,9 @@ export class DashboardController {
 
   @Get('super-admin')
   @Roles('SUPER_ADMIN')
-  @ApiOperation({ summary: 'Get System Admin (SUPER_ADMIN) Executive Dashboard' })
+  @ApiOperation({
+    summary: 'Get System Admin (SUPER_ADMIN) Executive Dashboard',
+  })
   getSystemAdminDashboard() {
     return this.dashboardService.getSystemAdminDashboard();
   }

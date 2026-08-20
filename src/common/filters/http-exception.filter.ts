@@ -30,7 +30,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const errorMessage =
       typeof responsePayload === 'string'
         ? responsePayload
-        : (responsePayload as any)?.message ?? 'Unexpected error';
+        : ((responsePayload as any)?.message ?? 'Unexpected error');
 
     if (status >= 500 && status !== 503) {
       this.logger.error(
@@ -38,12 +38,17 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         exception instanceof Error ? exception.stack : undefined,
       );
     } else {
-      this.logger.warn(`[${request.method}] ${request.url} → ${status} — ${errorMessage}`);
+      this.logger.warn(
+        `[${request.method}] ${request.url} → ${status} — ${errorMessage}`,
+      );
     }
 
     const jsonResponse = {
       statusCode: status,
-      error: exception instanceof HttpException ? exception.name : 'InternalServerError',
+      error:
+        exception instanceof HttpException
+          ? exception.name
+          : 'InternalServerError',
       message: errorMessage,
       timestamp: new Date().toISOString(),
       path: request.url,

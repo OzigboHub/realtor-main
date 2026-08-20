@@ -26,7 +26,9 @@ export class UploadService {
       });
       this.logger.log('Cloudinary media storage initialized successfully.');
     } else {
-      this.logger.warn('Cloudinary credentials missing in .env — using Local Disk Fallback strategy.');
+      this.logger.warn(
+        'Cloudinary credentials missing in .env — using Local Disk Fallback strategy.',
+      );
     }
 
     this.localStorageDir = path.join(process.cwd(), 'uploads');
@@ -40,7 +42,9 @@ export class UploadService {
    */
   async uploadImage(file: any): Promise<{ url: string; publicId: string }> {
     if (!file || !file.buffer) {
-      throw new BadRequestException('No valid file payload provided for image upload');
+      throw new BadRequestException(
+        'No valid file payload provided for image upload',
+      );
     }
 
     if (this.isCloudinaryConfigured) {
@@ -56,7 +60,10 @@ export class UploadService {
               this.logger.error(`Cloudinary upload failed: ${error.message}`);
               return reject(error);
             }
-            if (!result) return reject(new Error('Cloudinary failed to return upload result'));
+            if (!result)
+              return reject(
+                new Error('Cloudinary failed to return upload result'),
+              );
             resolve({ url: result.secure_url, publicId: result.public_id });
           },
         );
@@ -71,7 +78,10 @@ export class UploadService {
   /**
    * Upload multiple images concurrently
    */
-  async uploadMultipleImages(files: any[]): Promise<{ urls: string[]; items: Array<{ url: string; publicId: string }> }> {
+  async uploadMultipleImages(files: any[]): Promise<{
+    urls: string[];
+    items: Array<{ url: string; publicId: string }>;
+  }> {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files provided for batch image upload');
     }
@@ -88,7 +98,9 @@ export class UploadService {
    */
   async uploadDocument(file: any): Promise<{ url: string; publicId: string }> {
     if (!file || !file.buffer) {
-      throw new BadRequestException('No valid file payload provided for document upload');
+      throw new BadRequestException(
+        'No valid file payload provided for document upload',
+      );
     }
 
     if (this.isCloudinaryConfigured) {
@@ -97,7 +109,10 @@ export class UploadService {
           { folder: 'realtor/documents', resource_type: 'raw' },
           (error, result) => {
             if (error) return reject(error);
-            if (!result) return reject(new Error('Cloudinary upload failed: no result returned'));
+            if (!result)
+              return reject(
+                new Error('Cloudinary upload failed: no result returned'),
+              );
             resolve({ url: result.secure_url, publicId: result.public_id });
           },
         );
@@ -112,7 +127,10 @@ export class UploadService {
   /**
    * Get presigned download URL for private documents
    */
-  async getPresignedUrl(publicId: string, expiresInSeconds = 900): Promise<{ presignedUrl: string }> {
+  async getPresignedUrl(
+    publicId: string,
+    expiresInSeconds = 900,
+  ): Promise<{ presignedUrl: string }> {
     if (this.isCloudinaryConfigured) {
       const timestamp = Math.floor(Date.now() / 1000) + expiresInSeconds;
       const signedUrl = cloudinary.url(publicId, {
@@ -124,14 +142,18 @@ export class UploadService {
       return { presignedUrl: signedUrl };
     }
 
-    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    const baseUrl =
+      this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     return { presignedUrl: `${baseUrl}/uploads/${publicId}` };
   }
 
   /**
    * Local storage fallback helper
    */
-  private async saveToLocalDisk(file: any, folder: string): Promise<{ url: string; publicId: string }> {
+  private async saveToLocalDisk(
+    file: any,
+    folder: string,
+  ): Promise<{ url: string; publicId: string }> {
     const fileExt = path.extname(file.originalname || '') || '.bin';
     const uniqueId = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
     const filename = `${folder}-${uniqueId}${fileExt}`;
@@ -139,7 +161,8 @@ export class UploadService {
 
     await fs.promises.writeFile(filePath, file.buffer);
 
-    const baseUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    const baseUrl =
+      this.configService.get<string>('APP_URL') || 'http://localhost:3000';
     const fileUrl = `${baseUrl}/uploads/${filename}`;
 
     return {
@@ -148,4 +171,3 @@ export class UploadService {
     };
   }
 }
-

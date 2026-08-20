@@ -135,8 +135,18 @@ describe('Full Features & New Endpoints (e2e)', () => {
             category: 'SECURITY_DEPOSIT',
             subject: 'Deposit Refund Claim',
             status: 'OPEN',
-            initiator: { id: 'usr-888', name: 'E2E Tester', email: 'e2e.tester@example.com', role: 'USER' },
-            respondent: { id: 'sa-999', name: 'Super Admin', email: 'superadmin@realtor.com', role: 'SUPER_ADMIN' },
+            initiator: {
+              id: 'usr-888',
+              name: 'E2E Tester',
+              email: 'e2e.tester@example.com',
+              role: 'USER',
+            },
+            respondent: {
+              id: 'sa-999',
+              name: 'Super Admin',
+              email: 'superadmin@realtor.com',
+              role: 'SUPER_ADMIN',
+            },
             evidences: [],
             _count: { messages: 0 },
           },
@@ -156,7 +166,9 @@ describe('Full Features & New Endpoints (e2e)', () => {
     jwtService = moduleFixture.get<JwtService>(JwtService);
     app = moduleFixture.createNestApplication();
     app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     app.useGlobalFilters(new GlobalExceptionFilter());
 
     await app.init();

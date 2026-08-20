@@ -86,11 +86,17 @@ export class MailService {
         await this.sendViaSMTP(to, subject, html);
         break;
       default:
-        this.logger.log(`[EMAIL STUB] To: ${to} | Subject: ${subject}\n${html}`);
+        this.logger.log(
+          `[EMAIL STUB] To: ${to} | Subject: ${subject}\n${html}`,
+        );
     }
   }
 
-  private async sendViaResend(to: string, subject: string, html: string): Promise<void> {
+  private async sendViaResend(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
     try {
       const { error } = await this.resendClient!.emails.send({
         from: this.from,
@@ -99,7 +105,9 @@ export class MailService {
         html,
       });
       if (error) {
-        this.logger.error(`Resend error sending to ${to}: ${JSON.stringify(error)}`);
+        this.logger.error(
+          `Resend error sending to ${to}: ${JSON.stringify(error)}`,
+        );
       } else {
         this.logger.log(`[Resend] Email sent to ${to}: "${subject}"`);
       }
@@ -108,9 +116,18 @@ export class MailService {
     }
   }
 
-  private async sendViaSMTP(to: string, subject: string, html: string): Promise<void> {
+  private async sendViaSMTP(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
     try {
-      await this.smtpTransporter!.sendMail({ from: this.from, to, subject, html });
+      await this.smtpTransporter!.sendMail({
+        from: this.from,
+        to,
+        subject,
+        html,
+      });
       this.logger.log(`[SMTP] Email sent to ${to}: "${subject}"`);
     } catch (err: any) {
       this.logger.error(`SMTP error sending to ${to}: ${err.message}`);
@@ -133,7 +150,11 @@ export class MailService {
     );
   }
 
-  async sendRegistrationPending(to: string, name: string, role: string): Promise<void> {
+  async sendRegistrationPending(
+    to: string,
+    name: string,
+    role: string,
+  ): Promise<void> {
     await this.sendMail(
       to,
       'Registration Received – Awaiting Approval',
@@ -147,7 +168,11 @@ export class MailService {
     );
   }
 
-  async sendApprovalNotification(to: string, name: string, role: string): Promise<void> {
+  async sendApprovalNotification(
+    to: string,
+    name: string,
+    role: string,
+  ): Promise<void> {
     await this.sendMail(
       to,
       'Account Approved ✅',
@@ -160,7 +185,11 @@ export class MailService {
     );
   }
 
-  async sendRejectionNotification(to: string, name: string, role: string): Promise<void> {
+  async sendRejectionNotification(
+    to: string,
+    name: string,
+    role: string,
+  ): Promise<void> {
     await this.sendMail(
       to,
       'Account Registration Rejected',
@@ -174,8 +203,13 @@ export class MailService {
     );
   }
 
-  async sendPasswordReset(to: string, name: string, resetToken: string): Promise<void> {
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
+  async sendPasswordReset(
+    to: string,
+    name: string,
+    resetToken: string,
+  ): Promise<void> {
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3000';
     const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
 
     await this.sendMail(
